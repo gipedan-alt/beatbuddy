@@ -55,6 +55,10 @@
  *   delay=MS       wait between Program Change and tempo (default 400 ms) so the song is loaded first
  *   out=TEXT       prefer the output whose name contains TEXT (default "WIDI")
  *   auto=0         don't send automatically on load; wait for the button
+ *   start=1        OPTIONAL auto-start (off by default): after the song (and tempo) are sent, also send
+ *                  CC114 value 1 ("Start - starts the playback of the current song") so the beat begins.
+ *   startdelay=MS  wait before the start command, 100-5000 (clamped; default 600). Counted from the tempo
+ *                  message; with no bpm= it is counted from the song select plus delay= (default 400+600 = 1000 ms).
  *   tab=URL        optional chord/tab link (URL-encoded http/https, e.g. Ultimate Guitar). Shows a big "Open tab" button.
  *   tabmode=MODE   what happens with tab= (default "same"):
  *                    same   - after the first successful send (song + tempo, then ~300 ms) this tab is replaced by
@@ -69,9 +73,13 @@
  *   Cn PC       Program Change = song - 1   (the song only changes when PC arrives)
  *   Bn 6A msb   CC106 Tempo MSB = floor(bpm/128)
  *   Bn 6B lsb   CC107 Tempo LSB = bpm % 128  (tempo updates when LSB arrives)
+ *   Bn 72 01    CC114 value 1 = Start playback of the current song (only with start=1). Follows the pedal's
+ *               Intro setting: with Intro = None the beat starts straight away, otherwise the intro plays first.
  */
 (function (global) {
   'use strict';
+
+  var START_DELAY_DEFAULT = 600, START_DELAY_MIN = 100, START_DELAY_MAX = 5000;
 
   function intParam(params, name, def) {
     var v = params.get(name);
@@ -93,6 +101,8 @@
       delay: intParam(p, 'delay', 400),
       out: (p.get('out') || 'WIDI').trim(),
       auto: p.get('auto') !== '0',
+      start: /^(1|true|yes|on)$/i.test((p.get('start') || '').trim()),
+      startdelay: intParam(p, 'startdelay', START_DELAY_DEFAULT),
       tab: null,
       tabmode: 'same',
       tabError: null
@@ -115,6 +125,8 @@
     if (!(cfg.ch >= 1 && cfg.ch <= 16)) errors.push('ch must be 1-16.');
     if (!(cfg.bank >= 0 && cfg.bank <= 127)) errors.push('bank must be 0-127.');
     if (!(cfg.delay >= 0 && cfg.delay <= 5000)) cfg.delay = 400;
+    if (!Number.isInteger(cfg.startdelay)) cfg.startdelay = START_DELAY_DEFAULT;
+    cfg.startdelay = Math.min(START_DELAY_MAX, Math.max(START_DELAY_MIN, cfg.startdelay));
     return { cfg: cfg, errors: errors };
   }
 
@@ -130,6 +142,12 @@
       var msb = Math.floor(cfg.bpm / 128), lsb = cfg.bpm % 128;
       msgs.push({ label: 'Tempo MSB CC106=' + msb, bytes: [0xB0 | c, 106, msb], delayAfter: 0 });
       msgs.push({ label: 'Tempo LSB CC107=' + lsb + ' (' + cfg.bpm + ' BPM)', bytes: [0xB0 | c, 107, lsb], delayAfter: 0 });
+    }
+    if (cfg.start) {
+      // Start goes LAST: startdelay after the tempo LSB, or (no bpm) delay + startdelay after the Program Change.
+      var last = msgs[msgs.length - 1];
+      last.delayAfter = cfg.bpm !== null ? cfg.startdelay : cfg.delay + cfg.startdelay;
+      msgs.push({ label: 'Start CC114=1 (play)', bytes: [0xB0 | c, 114, 1], delayAfter: 0 });
     }
     return msgs;
   }
@@ -151,7 +169,8 @@
   }
 
   // Pure function: should this page replace itself with the tab after a send? And after how long?
-  // Returns ms to wait after the LAST MIDI message (the tempo LSB, or the Program Change if no bpm), or null.
+  // Returns ms to wait after the LAST MIDI message (the start CC114 with start=1, else the tempo LSB, or the
+  // Program Change if no bpm), or null. send() only redirects after every message, incl. the start, has gone out.
   var TAB_AFTER_MS = 300;
   function redirectPlan(cfg) {
     if (!cfg.tab || cfg.tabmode !== 'same') return null;
@@ -159,7 +178,8 @@
   }
 
   var api = { parseConfig: parseConfig, buildMessages: buildMessages, pickOutput: pickOutput, hex: hex,
-              redirectPlan: redirectPlan, TAB_AFTER_MS: TAB_AFTER_MS };
+              redirectPlan: redirectPlan, TAB_AFTER_MS: TAB_AFTER_MS,
+              START_DELAY_DEFAULT: START_DELAY_DEFAULT, START_DELAY_MIN: START_DELAY_MIN, START_DELAY_MAX: START_DELAY_MAX };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   global.BBMidi = api;
 
@@ -186,13 +206,14 @@
     a.href = cfg.tab;
     a.style.display = 'block';
     if (cfg.tabmode === 'new') { a.target = '_blank'; a.textContent = 'Open tab (new tab)'; }
-    $('tabnote').textContent = cfg.tabmode === 'same' ? 'The tab opens here automatically once the song and tempo are sent.' : '';
+    $('tabnote').textContent = cfg.tabmode === 'same' ? 'The tab opens here automatically once the song' + (cfg.bpm !== null ? ', tempo' : '') +
+      (cfg.start ? ' and start' : '') + ' are sent.' : '';
   } else if (cfg.tabError) {
     $('tabnote').textContent = cfg.tabError;
   }
   if (parsed.errors.length === 0) {
     $('target').textContent = 'Folder ' + cfg.folder + ' · Song ' + cfg.songnum +
-      (cfg.bpm !== null ? ' · ' + cfg.bpm + ' BPM' : '') + ' · Ch ' + cfg.ch;
+      (cfg.bpm !== null ? ' · ' + cfg.bpm + ' BPM' : '') + ' · Ch ' + cfg.ch + (cfg.start ? ' · Auto\u2011start' : '');
     document.title = (cfg.song || 'BeatBuddy') + ' → BeatBuddy';
   }
 
@@ -240,7 +261,7 @@
     sending = true;
     try {
       var msgs = buildMessages(cfg);
-      setStatus('Sending…', 'warn', 'To: ' + out.name);
+      setStatus('Sending…', 'warn', 'To: ' + out.name + (cfg.start ? '\nBeat starts in a moment…' : ''));
       for (var i = 0; i < msgs.length; i++) {
         out.send(msgs[i].bytes);
         log('→ ' + out.name + ': ' + hex(msgs[i].bytes) + '   ' + msgs[i].label);
@@ -253,9 +274,9 @@
         $('tabnote').textContent = 'Opening tab…';
         setTimeout(function () { location.replace(cfg.tab); }, wait);
       }
-      setStatus('✓ Sent to BeatBuddy', 'ok',
+      setStatus(cfg.start ? '✓ Sent + started' : '✓ Sent to BeatBuddy', 'ok',
         (cfg.song ? cfg.song + '\n' : '') + 'Folder ' + cfg.folder + ', Song ' + cfg.songnum +
-        (cfg.bpm !== null ? ', ' + cfg.bpm + ' BPM' : '') + '\nvia ' + out.name +
+        (cfg.bpm !== null ? ', ' + cfg.bpm + ' BPM' : '') + (cfg.start ? '\nStart (CC114) sent' : '') + '\nvia ' + out.name +
         (!isPreferred(out) ? '\n⚠ This is not a "' + cfg.out + '" device — pick the right output above if needed.' : ''));
     } catch (e) {
       setStatus('Send failed', 'err', String(e && e.message || e));
