@@ -23,6 +23,10 @@
   #log { font: 13px/1.4 ui-monospace, monospace; color:#8f8; text-align:left; max-width:820px; width:100%;
          white-space:pre-wrap; background:#000; padding:8px; border-radius:8px; box-sizing:border-box; }
   label { font-size: 16px; color:#aaa; }
+  #opentab { display:none; box-sizing:border-box; font-size: clamp(24px, 6vw, 40px); font-weight:700; padding:22px 40px;
+             border-radius:18px; background:#ef6c00; color:#fff; width:100%; max-width:820px; text-decoration:none; }
+  #opentab:active { background:#e65100; }
+  #tabnote { font-size: clamp(14px, 3.4vw, 18px); color:#ffcc80; max-width:820px; }
 </style>
 </head>
 <body>
@@ -30,6 +34,8 @@
   <div id="target"></div>
   <div id="status">Starting…</div>
   <div id="detail"></div>
+  <a id="opentab" href="#" rel="noopener">Open tab</a>
+  <div id="tabnote"></div>
   <button id="send" type="button">Send again</button>
   <label for="outputs">MIDI output</label>
   <select id="outputs"><option value="">(no MIDI outputs yet)</option></select>
@@ -49,6 +55,13 @@
  *   delay=MS       wait between Program Change and tempo (default 400 ms) so the song is loaded first
  *   out=TEXT       prefer the output whose name contains TEXT (default "WIDI")
  *   auto=0         don't send automatically on load; wait for the button
+ *   tab=URL        optional chord/tab link (URL-encoded http/https, e.g. Ultimate Guitar). Shows a big "Open tab" button.
+ *   tabmode=MODE   what happens with tab= (default "same"):
+ *                    same   - after the first successful send (song + tempo, then ~300 ms) this tab is replaced by
+ *                             the tab URL (location.replace: no user gesture needed, and Back skips this page so
+ *                             it can't loop). If MIDI fails, no redirect: the error and the Open tab button stay.
+ *                    new    - never leaves this page; "Open tab" (and tapping "Send again") open the tab in a new tab.
+ *                    button - never redirects; "Open tab" opens it in this tab.
  *
  * BeatBuddy MIDI (manual fw 4.1.3, "Folder/Song Select" + "Tempo Control"):
  *   Bn 00 MSB   Bank Select MSB (CC0)
@@ -79,8 +92,20 @@
       bank: intParam(p, 'bank', 0),
       delay: intParam(p, 'delay', 400),
       out: (p.get('out') || 'WIDI').trim(),
-      auto: p.get('auto') !== '0'
+      auto: p.get('auto') !== '0',
+      tab: null,
+      tabmode: 'same',
+      tabError: null
     };
+    var tabRaw = (p.get('tab') || '').trim();
+    if (tabRaw) {
+      var u = null;
+      try { u = new URL(tabRaw); } catch (e) { u = null; }
+      if (u && (u.protocol === 'https:' || u.protocol === 'http:')) cfg.tab = u.href;
+      else cfg.tabError = 'tab= is not an http(s) link, ignored.';
+    }
+    var tm = (p.get('tabmode') || '').trim().toLowerCase();
+    if (tm === 'new' || tm === 'same' || tm === 'button') cfg.tabmode = tm;
     var errors = [];
     if (cfg.folder === null) errors.push('Missing folder= (BeatBuddy folder number, starting at 1).');
     else if (!(cfg.folder >= 1 && cfg.folder <= 128)) errors.push('folder must be a whole number 1-128.');
@@ -125,7 +150,16 @@
     return outputs[0];
   }
 
-  var api = { parseConfig: parseConfig, buildMessages: buildMessages, pickOutput: pickOutput, hex: hex };
+  // Pure function: should this page replace itself with the tab after a send? And after how long?
+  // Returns ms to wait after the LAST MIDI message (the tempo LSB, or the Program Change if no bpm), or null.
+  var TAB_AFTER_MS = 300;
+  function redirectPlan(cfg) {
+    if (!cfg.tab || cfg.tabmode !== 'same') return null;
+    return TAB_AFTER_MS;
+  }
+
+  var api = { parseConfig: parseConfig, buildMessages: buildMessages, pickOutput: pickOutput, hex: hex,
+              redirectPlan: redirectPlan, TAB_AFTER_MS: TAB_AFTER_MS };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   global.BBMidi = api;
 
@@ -133,7 +167,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var parsed = parseConfig(location.search);
   var cfg = parsed.cfg;
-  var access = null, outputs = [], sentOnce = false, sending = false, userPicked = false;
+  var access = null, outputs = [], sentOnce = false, sending = false, userPicked = false, redirected = false;
   function isPreferred(o) { return !!o && (o.name || '').toLowerCase().indexOf((cfg.out || '').toLowerCase()) !== -1; }
 
   function setStatus(text, cls, detail) {
@@ -147,6 +181,15 @@
   }
 
   $('song').textContent = cfg.song || 'BeatBuddy';
+  if (cfg.tab) {
+    var a = $('opentab');
+    a.href = cfg.tab;
+    a.style.display = 'block';
+    if (cfg.tabmode === 'new') { a.target = '_blank'; a.textContent = 'Open tab (new tab)'; }
+    $('tabnote').textContent = cfg.tabmode === 'same' ? 'The tab opens here automatically once the song and tempo are sent.' : '';
+  } else if (cfg.tabError) {
+    $('tabnote').textContent = cfg.tabError;
+  }
   if (parsed.errors.length === 0) {
     $('target').textContent = 'Folder ' + cfg.folder + ' · Song ' + cfg.songnum +
       (cfg.bpm !== null ? ' · ' + cfg.bpm + ' BPM' : '') + ' · Ch ' + cfg.ch;
@@ -204,6 +247,12 @@
         if (msgs[i].delayAfter) await sleep(msgs[i].delayAfter);
       }
       sentOnce = true;
+      var wait = redirectPlan(cfg);
+      if (wait !== null && !redirected) {
+        redirected = true;
+        $('tabnote').textContent = 'Opening tab…';
+        setTimeout(function () { location.replace(cfg.tab); }, wait);
+      }
       setStatus('✓ Sent to BeatBuddy', 'ok',
         (cfg.song ? cfg.song + '\n' : '') + 'Folder ' + cfg.folder + ', Song ' + cfg.songnum +
         (cfg.bpm !== null ? ', ' + cfg.bpm + ' BPM' : '') + '\nvia ' + out.name +
@@ -254,7 +303,11 @@
     else setStatus('Ready — tap Send', 'warn', 'Output: ' + pref.name);
   }
 
-  $('send').addEventListener('click', function () { send(); });
+  $('send').addEventListener('click', function () {
+    // tabmode=new: this tap is a user gesture, so a new tab is allowed (open it before the async send).
+    if (cfg.tab && cfg.tabmode === 'new' && parsed.errors.length === 0) window.open(cfg.tab, '_blank', 'noopener');
+    send();
+  });
   $('outputs').addEventListener('change', function () { userPicked = true; log('selected output: ' + (currentOutput() || {}).name); });
   init();
 })(typeof window !== 'undefined' ? window : globalThis);
