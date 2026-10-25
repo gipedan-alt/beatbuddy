@@ -9,11 +9,11 @@
   * { box-sizing: border-box; }
   body { margin:0; font-family: system-ui, -apple-system, Roboto, sans-serif; background:#111; color:#eee; }
   header { position:sticky; top:0; z-index:2; background:#111; padding:10px 10px 8px; border-bottom:1px solid #333; }
-  #bar { display:flex; gap:8px; align-items:center; }
-  #status { flex:1; font-size:17px; font-weight:700; padding:10px 12px; border-radius:12px; background:#333; min-height:48px;
+  #bar { display:flex; gap:6px; align-items:center; }
+  #status { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:17px; font-weight:700; padding:10px 12px; border-radius:12px; background:#333; min-height:48px;
             display:flex; align-items:center; }
   #status.ok { background:#1b5e20; } #status.warn { background:#8a6d00; } #status.err { background:#8b1a1a; }
-  #connect { font-size:17px; font-weight:700; padding:12px 14px; border-radius:12px; border:0; background:#1565c0; color:#fff; min-height:48px; }
+  #connect { font-size:17px; font-weight:700; padding:12px 12px; white-space:nowrap; border-radius:12px; border:0; background:#1565c0; color:#fff; min-height:48px; }
   #q { width:100%; margin-top:8px; font-size:20px; padding:12px 14px; border-radius:12px; border:1px solid #444; background:#1d1d1d; color:#fff; }
   #msg { font-size:16px; margin-top:6px; color:#ddd; white-space:pre-line; }
   #msg a { color:#ffb74d; font-weight:700; }
@@ -31,14 +31,20 @@
   #count { font-size:13px; color:#888; padding:0 12px; }
   #startdelay { font-size:15px; padding:6px; border-radius:8px; }
   #startdelay:disabled { opacity:.5; }
-  #stop { font-size:17px; font-weight:700; padding:12px 14px; border-radius:12px; border:0; background:#b71c1c; color:#fff; min-height:48px; }
+  #stop, #start { font-size:17px; font-weight:700; padding:12px 12px; border-radius:12px; border:0; color:#fff; min-height:48px; min-width:48px; white-space:nowrap; }
+  #stop { background:#b71c1c; }
   #stop:active { background:#7f0000; }
+  #start { background:#2e7d32; }
+  #start:active { background:#1b5e20; }
+  #start.off { opacity:.45; filter:grayscale(.6); }
   .stopnote { font-size:12px; color:#ef9a9a; }
+  .startnote { font-size:12px; color:#a5d6a7; }
+  @media (max-width:520px) { #bar #stop, #bar #start, #bar #connect { font-size:16px; padding:12px 9px; } }
 </style>
 </head>
 <body>
 <header>
-  <div id="bar"><div id="status">Starting…</div><button id="connect" type="button">Connect MIDI</button><button id="stop" type="button" title="Sends MIDI Stop (0xFC) — stops immediately">■ Stop beat</button></div>
+  <div id="bar"><div id="status">Starting…</div><button id="connect" type="button">Connect MIDI</button><button id="stop" type="button" title="Sends MIDI Stop (0xFC) — stops immediately">■ Stop beat</button><button id="start" type="button" class="off" title="Sends CC114 = 1 — starts the loaded song">▶ Start beat</button></div>
   <input id="q" type="search" placeholder="Search songs, artists, beats…" autocomplete="off">
   <div id="msg"></div>
   <div id="opts">
@@ -49,6 +55,7 @@
       <option value="300">300 ms</option><option value="600" selected>600 ms</option><option value="1000">1000 ms</option>
       <option value="1500">1500 ms</option><option value="2000">2000 ms</option></select></label>
     <span class="stopnote">■ Stop beat stops immediately</span>
+    <span class="startnote">▶ Start beat starts the loaded song</span>
   </div>
 </header>
 <div id="count"></div>
@@ -71,6 +78,8 @@
  * the current song". With no bpm the start goes delay + startDelay after the song select (default 400+600 = 1000 ms).
  * A new tap (or Stop) cancels any tempo/start still pending from the previous tap, so a stale start never fires.
  * "Stop beat" sends MIDI System Real Time Stop (0xFC); MIDI-IN > Stop is Enabled by default (manual p.41).
+ * "Start beat" sends CC114 value 1 (Bn 72 01, same message as auto-start) on the selected channel, after cancelling any
+ * pending tempo/auto-start timer so nothing is sent twice. Works whether or not Auto-start is ticked.
  */
 (function (global) {
   'use strict';
@@ -137,10 +146,21 @@
     }
     return r;
   }
+  /*
+   * Manual "Start beat": env = { out, ch, cancel }. Always calls cancel() first (pending tempo/auto-start),
+   * then sends CC114 = 1 on channel ch if there is an output. Returns { sent, bytes }.
+   */
+  function startBeat(env) {
+    if (env.cancel) env.cancel();
+    var bytes = buildSongMessages({ folder: 1, songnum: 1 }, env.ch).start;
+    if (!env.out) return { sent: false, bytes: bytes };
+    env.out.send(bytes);
+    return { sent: true, bytes: bytes };
+  }
   var STOP = [0xFC];   // MIDI System Real Time Stop (channel-less)
   var START_DELAYS = [300, 600, 1000, 1500, 2000];
   var api = { buildSongMessages: buildSongMessages, pickOutput: pickOutput, safeTab: safeTab, sortSongs: sortSongs,
-              filterSongs: filterSongs, tapSong: tapSong, STOP: STOP, START_DELAYS: START_DELAYS };
+              filterSongs: filterSongs, tapSong: tapSong, startBeat: startBeat, STOP: STOP, START_DELAYS: START_DELAYS };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
   global.BBSongs = api;
 
@@ -165,7 +185,7 @@
   $('startdelay').addEventListener('change', function () { try { localStorage.setItem('bb_startdelay', this.value); } catch (e) {} });
   function cancelPending() { if (pending) { pending.cancel(); pending = null; } }
 
-  function setStatus(t, cls) { $('status').textContent = t; $('status').className = cls || ''; }
+  function setStatus(t, cls) { $('status').textContent = t; $('status').title = t; $('status').className = cls || ''; }
   function setMsg(text, link) {
     var el = $('msg'); el.textContent = text || '';
     if (link) { el.appendChild(document.createTextNode(' ')); var a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open tab anyway'; el.appendChild(a); }
@@ -193,6 +213,7 @@
   function usableOutput() { var o = currentOutput(); return o && (isPreferred(o) || userPicked) ? o : null; }
   function showConn() {
     var o = usableOutput();
+    $('start').classList.toggle('off', !o); $('start').setAttribute('aria-disabled', o ? 'false' : 'true');
     if (o) { setStatus('✓ ' + o.name, 'ok'); $('connect').style.display = 'none'; }
     else if (!access) { setStatus('MIDI not connected', 'err'); $('connect').style.display = ''; }
     else {
@@ -264,6 +285,14 @@
     var out = usableOutput();
     if (!out) { connect(); setMsg('Stop NOT sent — no BeatBuddy MIDI connection.'); return; }
     try { out.send(STOP); setMsg('■ Stop sent (MIDI Stop 0xFC)'); } catch (e) { setStatus('Send failed', 'err'); setMsg(String(e && e.message || e)); }
+  });
+  $('start').addEventListener('click', function () {
+    var out = usableOutput();
+    try {
+      var r = startBeat({ out: out, ch: CH, cancel: cancelPending });   // cancels pending tempo/auto-start first
+      if (!r.sent) { connect(); setMsg('▶ Start NOT sent — no BeatBuddy MIDI connection.'); return; }
+      setMsg('▶ Start sent');
+    } catch (e) { setStatus('Send failed', 'err'); setMsg(String(e && e.message || e)); }
   });
   $('outputs').addEventListener('change', function () { userPicked = true; showConn(); });
   render();
