@@ -24,10 +24,6 @@
   .song { width:100%; text-align:left; border:0; border-radius:14px; background:#222; color:#eee; padding:14px 14px; min-height:64px;
           display:block; font:inherit; cursor:pointer; }
   .song:active { background:#0d47a1; }
-  .bpm-ctl { display:flex; align-items:center; gap:6px; margin-top:6px; }
-  .bpm-ctl button { font-size:18px; font-weight:700; width:36px; height:36px; border-radius:8px; border:0; background:#1565c0; color:#fff; padding:0; }
-  .bpm-ctl button:active { background:#0d47a1; }
-  .bpm-val { font-size:16px; font-weight:700; min-width:48px; text-align:center; }
   .song.sent { background:#1b5e20; }
   .t { font-size:21px; font-weight:700; display:block; }
   .m { font-size:14px; color:#aaa; display:block; margin-top:3px; }
@@ -43,6 +39,24 @@
   #start.off { opacity:.45; filter:grayscale(.6); }
   .stopnote { font-size:12px; color:#ef9a9a; }
   .startnote { font-size:12px; color:#a5d6a7; }
+  /* Live tempo: fixed to the bottom so the targets stay under the thumb while the list scrolls. */
+  #tempo { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; gap:8px; align-items:stretch;
+           padding:8px 8px calc(8px + env(safe-area-inset-bottom)); background:#0e0e0e; border-top:1px solid #333;
+           box-shadow:0 -6px 16px rgba(0,0,0,.45); }
+  #tempo[hidden] { display:none !important; }
+  #bpm-minus, #bpm-plus { flex:1 1 0; min-width:72px; min-height:84px; font-size:48px; font-weight:800; line-height:1;
+           border:0; border-radius:16px; color:#fff; touch-action:manipulation; }
+  #bpm-minus { background:#37474f; }
+  #bpm-minus:active { background:#263238; }
+  #bpm-plus { background:#1565c0; }
+  #bpm-plus:active { background:#0d47a1; }
+  #bpm-readout { flex:1.3 1 0; min-width:0; min-height:84px; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; background:#1b1b1b; border-radius:16px; padding:6px 8px; }
+  #bpm-value { font-size:36px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+  #bpm-unit { font-size:12px; font-weight:700; letter-spacing:.06em; color:#9e9e9e; margin-top:2px; }
+  #bpm-caption { font-size:12px; color:#bbb; margin-top:2px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #bpm-caption.default { color:#ffb74d; font-weight:700; }
+  body.has-tempo #list { padding-bottom:140px; }
   @media (max-width:520px) { #bar #stop, #bar #start, #bar #connect { font-size:16px; padding:12px 9px; } }
 </style>
 </head>
@@ -64,116 +78,217 @@
 </header>
 <div id="count"></div>
 <ul id="list"></ul>
+<div id="tempo" hidden role="group" aria-label="Tempo">
+  <button id="bpm-minus" type="button" aria-label="Decrease tempo by 1 BPM">−</button>
+  <div id="bpm-readout">
+    <div id="bpm-value" aria-live="polite">120</div>
+    <div id="bpm-unit">BPM</div>
+    <div id="bpm-caption"></div>
+  </div>
+  <button id="bpm-plus" type="button" aria-label="Increase tempo by 1 BPM">+</button>
+</div>
 <script type="application/json" id="songs-data">
-<script type="application/json" id="songs-data">
-[{"key":"r6","title":"All Who Are Thirsty","artist":"Kutless","folder":1,"songnum":27,"bpm":152,"bb":"All Who Are Thirsty (Blues 3)","tab":"https://tabs.ultimate-guitar.com/tab/kutless/all-who-are-thirsty-chords-321733"},{"key":"r7","title":"Anything Is Possible","artist":"Bethel Music","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=5lzr4TEl6jC3Kzppa5tdDmDu&tab_id=32091203"},{"key":"r8","title":"Author Perfector","artist":"Rivers & Robots","folder":20,"songnum":1,"bpm":148,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/rivers-robots/author-perfector-chords-2574873"},{"key":"r9","title":"Be Lifted Up","artist":"Paul Oakley","folder":20,"songnum":1,"bpm":152,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/paul-oakley/be-lifted-up-chords-1188821"},{"key":"r10","title":"Blessed Be Your Name","artist":"Matt Redman","folder":1,"songnum":19,"bpm":118,"bb":"Blessed Be Your Name","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/blessed-be-your-name-official-2423235"},{"key":"r11","title":"Break Every Chain","artist":"Jesus Culture","folder":26,"songnum":4,"bpm":136,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=3CW_TH4A1q5S-CLtM1_wZCf5&tab_id=32101475"},{"key":"r12","title":"Champion","artist":"Maverick City Music","folder":3,"songnum":3,"bpm":72,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=8d6LxxmIzvmq83e1xSjH1NnM&tab_id=32090738"},{"key":"r13","title":"Eyes On You","artist":"Chase Rice","folder":6,"songnum":6,"bpm":89,"bb":"Country 6- Str 8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chase-rice/eyes-on-you-chords-2218453"},{"key":"r14","title":"Fall Afresh","artist":"Jeremy Riddle","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jeremy-riddle/fall-afresh-chords-1170532"},{"key":"r15","title":"Father Abraham","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":132,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/father-abraham-chords-3908840"},{"key":"r16","title":"Gratitude","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-official-4007563"},{"key":"r17","title":"Gratitude","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3313037"},{"key":"r18","title":"Gratitude (ver 2)","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3721607"},{"key":"r19","title":"Graves Into Gardens","artist":"The Worship Initiative","folder":1,"songnum":2,"bpm":140,"bb":"Graves into Gardens","tab":"https://tabs.ultimate-guitar.com/tab/the-worship-initiative/graves-into-gardens-chords-3291140"},{"key":"r20","title":"Great Are You Lord","artist":"All Sons & Daughters","folder":15,"songnum":3,"bpm":144,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/all-sons-daughters/great-are-you-lord-chords-1401417"},{"key":"r21","title":"Hallelujah Your Love Is Amazing","artist":"Brenton Brown","folder":26,"songnum":4,"bpm":109,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-483874"},{"key":"r22","title":"Hallelujah Your Love Is Amazing (ver 3)","artist":"Brenton Brown","folder":26,"songnum":4,"bpm":109,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-1675217"},{"key":"r23","title":"Holy And Anointed One","artist":"Vineyard Music","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/holy-and-anointed-one-chords-277712"},{"key":"r24","title":"Jesus Paid It All","artist":"Passion","folder":24,"songnum":6,"bpm":76,"bb":"Waltz (standard)","tab":"https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-735983"},{"key":"r25","title":"Jesus Paid It All (ver 3)","artist":"Passion","folder":24,"songnum":6,"bpm":76,"bb":"Waltz (standard)","tab":"https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-1148858"},{"key":"r26","title":"Just As Good","artist":"Chris Renzema","folder":20,"songnum":1,"bpm":144,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=8l32lcQdfGY5rPQK32WiVESb&tab_id=32096093"},{"key":"r27","title":"King Jesus","artist":"Brooke Fraser (Brooke Ligertwood)","folder":2,"songnum":1,"bpm":73,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=zanRPS4D6-kxH-Ryi7QhwGrO&tab_id=32096342"},{"key":"r28","title":"King Of My Heart","artist":"Bethel Music","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/king-of-my-heart-chords-1803087"},{"key":"r29","title":"Let It Rain","artist":"Jesus Culture","folder":1,"songnum":76,"bpm":67,"bb":"Let it Rain","tab":"https://tabs.ultimate-guitar.com/tab/jesus-culture/let-it-rain-chords-1023872"},{"key":"r30","title":"Lion And The Lamb (ver 2)","artist":"Bethel Music","folder":1,"songnum":79,"bpm":90,"bb":"The Lion and the Lamb","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/lion-and-the-lamb-chords-1835939"},{"key":"r31","title":"Long Live The King","artist":"Influence Music","folder":2,"songnum":1,"bpm":73,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/influence-music/long-live-the-king-chords-4694462"},{"key":"r32","title":"My King Forever","artist":"Josh Baldwin","folder":15,"songnum":3,"bpm":144,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/josh-baldwin/my-king-forever-chords-3114482"},{"key":"r33","title":"No Longer Slaves","artist":"Bethel Music","folder":1,"songnum":14,"bpm":74,"bb":"No Longer Slaves","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=QgYJYN3nEZNbfZsW28N8eC0k&tab_id=32090921"},{"key":"r34","title":"Our Father","artist":"Bethel Music","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/our-father-chords-1193907"},{"key":"r35","title":"Overcome","artist":"Desperation Band","folder":1,"songnum":83,"bpm":76,"bb":"Overcome","tab":"https://tabs.ultimate-guitar.com/tab/desperation-band/overcome-ukulele-1306542"},{"key":"r36","title":"Power In The Blood","artist":"SDA Hymns","folder":26,"songnum":4,"bpm":124,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/sda-hymns/power-in-the-blood-chords-1945379"},{"key":"r37","title":"So Will I 100 Billion X","artist":"Hillsong United","folder":26,"songnum":4,"bpm":128,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-united/so-will-i-100-billion-x-chords-2034223"},{"key":"r38","title":"Spirit Move","artist":"Bethel Music","folder":17,"songnum":6,"bpm":80,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=7yM6cQKo9pgBFWsoYnonstUP&tab_id=32091281"},{"key":"r39","title":"Standing On The Promises","artist":"Misc Praise Songs","folder":20,"songnum":1,"bpm":184,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=Clx3qM4gCyIuXK6yKL4F20Sy&tab_id=32095985"},{"key":"r40","title":"Thank You Jesus For The Blood","artist":"Charity Gayle","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=5-RvHfRNKw14hLMmia6RSgVF&tab_id=32096225"},{"key":"r41","title":"Thats The Power","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=avv5ZL7wN-f27cwxZMoz84Vz&tab_id=32096720"},{"key":"r42","title":"Unto The Lamb","artist":"UPPERROOM","folder":26,"songnum":4,"bpm":137,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/upperroom/unto-the-lamb-chords-3036621"},{"key":"r43","title":"Way Maker (ver 3)","artist":"Sinach","folder":1,"songnum":35,"bpm":66,"bb":"Way maker","tab":"https://tabs.ultimate-guitar.com/tab/sinach/way-maker-chords-2405347"},{"key":"r44","title":"Worthy Of It All","artist":"David Brymer","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/david-brymer/worthy-of-it-all-chords-1156060"},{"key":"r45","title":"You Never Let Go (ver 2)","artist":"Matt Redman","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/you-never-let-go-chords-393920"},{"key":"r46","title":"All Hail King Jesus","artist":"Jeremy Riddle","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jeremy-riddle/all-hail-king-jesus-chords-2188223"},{"key":"r47","title":"Always","artist":"Chris Tomlin","folder":15,"songnum":3,"bpm":158,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/always-chords-4130875"},{"key":"r48","title":"Come To The River","artist":"Housefires","folder":26,"songnum":4,"bpm":135,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/housefires/come-to-the-river-chords-1665955"},{"key":"r49","title":"Communion","artist":"Steffany Gretzinger","folder":3,"songnum":3,"bpm":91,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/steffany-gretzinger/communion-chords-2885060"},{"key":"r50","title":"Forever Reign","artist":"Hillsong Worship","folder":17,"songnum":6,"bpm":83,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/forever-reign-chords-968753"},{"key":"r51","title":"Give Me Oil In My Lamp","artist":"Misc Traditional","folder":26,"songnum":4,"bpm":123,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-traditional/give-me-oil-in-my-lamp-chords-1202215"}]
+[{"key":"r6","title":"All Who Are Thirsty","artist":"Kutless","folder":1,"songnum":27,"bpm":152,"bb":"All Who Are Thirsty (Blues 3)","tab":"https://tabs.ultimate-guitar.com/tab/kutless/all-who-are-thirsty-chords-321733"},{"key":"r7","title":"Anything Is Possible","artist":"Bethel Music","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=5lzr4TEl6jC3Kzppa5tdDmDu&tab_id=32091203"},{"key":"r8","title":"Author Perfector","artist":"Rivers & Robots","folder":20,"songnum":1,"bpm":148,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/rivers-robots/author-perfector-chords-2574873"},{"key":"r9","title":"Be Lifted Up","artist":"Paul Oakley","folder":20,"songnum":1,"bpm":152,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/paul-oakley/be-lifted-up-chords-1188821"},{"key":"r10","title":"Blessed Be Your Name","artist":"Matt Redman","folder":1,"songnum":19,"bpm":118,"bb":"Blessed Be Your Name","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/blessed-be-your-name-official-2423235"},{"key":"r11","title":"Break Every Chain","artist":"Jesus Culture","folder":26,"songnum":4,"bpm":136,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=3CW_TH4A1q5S-CLtM1_wZCf5&tab_id=32101475"},{"key":"r12","title":"Champion","artist":"Maverick City Music","folder":3,"songnum":3,"bpm":72,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=8d6LxxmIzvmq83e1xSjH1NnM&tab_id=32090738"},{"key":"r13","title":"Eyes On You","artist":"Chase Rice","folder":6,"songnum":6,"bpm":89,"bb":"Country 6- Str 8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chase-rice/eyes-on-you-chords-2218453"},{"key":"r14","title":"Fall Afresh","artist":"Jeremy Riddle","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jeremy-riddle/fall-afresh-chords-1170532"},{"key":"r15","title":"Father Abraham","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":132,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/father-abraham-chords-3908840"},{"key":"r16","title":"Gratitude","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-official-4007563"},{"key":"r17","title":"Gratitude","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3313037"},{"key":"r18","title":"Gratitude (ver 2)","artist":"Brandon Lake","folder":15,"songnum":3,"bpm":155,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3721607"},{"key":"r19","title":"Graves Into Gardens","artist":"The Worship Initiative","folder":1,"songnum":2,"bpm":140,"bb":"Graves into Gardens","tab":"https://tabs.ultimate-guitar.com/tab/the-worship-initiative/graves-into-gardens-chords-3291140"},{"key":"r20","title":"Great Are You Lord","artist":"All Sons & Daughters","folder":15,"songnum":3,"bpm":144,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/all-sons-daughters/great-are-you-lord-chords-1401417"},{"key":"r21","title":"Hallelujah Your Love Is Amazing","artist":"Brenton Brown","folder":26,"songnum":4,"bpm":109,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-483874"},{"key":"r22","title":"Hallelujah Your Love Is Amazing (ver 3)","artist":"Brenton Brown","folder":26,"songnum":4,"bpm":109,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-1675217"},{"key":"r23","title":"Holy And Anointed One","artist":"Vineyard Music","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/holy-and-anointed-one-chords-277712"},{"key":"r24","title":"Jesus Paid It All","artist":"Passion","folder":24,"songnum":6,"bpm":76,"bb":"Waltz (standard)","tab":"https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-735983"},{"key":"r25","title":"Jesus Paid It All (ver 3)","artist":"Passion","folder":24,"songnum":6,"bpm":76,"bb":"Waltz (standard)","tab":"https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-1148858"},{"key":"r26","title":"Just As Good","artist":"Chris Renzema","folder":20,"songnum":1,"bpm":144,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=8l32lcQdfGY5rPQK32WiVESb&tab_id=32096093"},{"key":"r27","title":"King Jesus","artist":"Brooke Fraser (Brooke Ligertwood)","folder":2,"songnum":1,"bpm":73,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=zanRPS4D6-kxH-Ryi7QhwGrO&tab_id=32096342"},{"key":"r28","title":"King Of My Heart","artist":"Bethel Music","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/king-of-my-heart-chords-1803087"},{"key":"r29","title":"Let It Rain","artist":"Jesus Culture","folder":1,"songnum":76,"bpm":67,"bb":"Let it Rain","tab":"https://tabs.ultimate-guitar.com/tab/jesus-culture/let-it-rain-chords-1023872"},{"key":"r30","title":"Lion And The Lamb (ver 2)","artist":"Bethel Music","folder":1,"songnum":79,"bpm":90,"bb":"The Lion and the Lamb","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/lion-and-the-lamb-chords-1835939"},{"key":"r31","title":"Long Live The King","artist":"Influence Music","folder":2,"songnum":1,"bpm":73,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/influence-music/long-live-the-king-chords-4694462"},{"key":"r32","title":"My King Forever","artist":"Josh Baldwin","folder":15,"songnum":3,"bpm":144,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/josh-baldwin/my-king-forever-chords-3114482"},{"key":"r33","title":"No Longer Slaves","artist":"Bethel Music","folder":1,"songnum":14,"bpm":74,"bb":"No Longer Slaves","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=QgYJYN3nEZNbfZsW28N8eC0k&tab_id=32090921"},{"key":"r34","title":"Our Father","artist":"Bethel Music","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/our-father-chords-1193907"},{"key":"r35","title":"Overcome","artist":"Desperation Band","folder":1,"songnum":83,"bpm":76,"bb":"Overcome","tab":"https://tabs.ultimate-guitar.com/tab/desperation-band/overcome-ukulele-1306542"},{"key":"r36","title":"Power In The Blood","artist":"SDA Hymns","folder":26,"songnum":4,"bpm":124,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/sda-hymns/power-in-the-blood-chords-1945379"},{"key":"r37","title":"So Will I 100 Billion X","artist":"Hillsong United","folder":26,"songnum":4,"bpm":128,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-united/so-will-i-100-billion-x-chords-2034223"},{"key":"r38","title":"Spirit Move","artist":"Bethel Music","folder":17,"songnum":6,"bpm":80,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=7yM6cQKo9pgBFWsoYnonstUP&tab_id=32091281"},{"key":"r39","title":"Standing On The Promises","artist":"Misc Praise Songs","folder":20,"songnum":1,"bpm":184,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=Clx3qM4gCyIuXK6yKL4F20Sy&tab_id=32095985"},{"key":"r40","title":"Thank You Jesus For The Blood","artist":"Charity Gayle","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=5-RvHfRNKw14hLMmia6RSgVF&tab_id=32096225"},{"key":"r41","title":"Thats The Power","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=avv5ZL7wN-f27cwxZMoz84Vz&tab_id=32096720"},{"key":"r42","title":"Unto The Lamb","artist":"UPPERROOM","folder":26,"songnum":4,"bpm":137,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/upperroom/unto-the-lamb-chords-3036621"},{"key":"r43","title":"Way Maker (ver 3)","artist":"Sinach","folder":1,"songnum":35,"bpm":66,"bb":"Way maker","tab":"https://tabs.ultimate-guitar.com/tab/sinach/way-maker-chords-2405347"},{"key":"r44","title":"Worthy Of It All","artist":"David Brymer","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/david-brymer/worthy-of-it-all-chords-1156060"},{"key":"r45","title":"You Never Let Go (ver 2)","artist":"Matt Redman","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/you-never-let-go-chords-393920"},{"key":"r46","title":"All Hail King Jesus","artist":"Jeremy Riddle","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jeremy-riddle/all-hail-king-jesus-chords-2188223"},{"key":"r47","title":"Always","artist":"Chris Tomlin","folder":15,"songnum":3,"bpm":158,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/always-chords-4130875"},{"key":"r48","title":"Come To The River","artist":"Housefires","folder":26,"songnum":4,"bpm":135,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/housefires/come-to-the-river-chords-1665955"},{"key":"r49","title":"Communion","artist":"Steffany Gretzinger","folder":3,"songnum":3,"bpm":91,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/steffany-gretzinger/communion-chords-2885060"},{"key":"r50","title":"Forever Reign","artist":"Hillsong Worship","folder":17,"songnum":6,"bpm":83,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/forever-reign-chords-968753"},{"key":"r51","title":"Give Me Oil In My Lamp","artist":"Misc Traditional","folder":26,"songnum":4,"bpm":123,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-traditional/give-me-oil-in-my-lamp-chords-3006665"},{"key":"r52","title":"Happy Day","artist":"Tim Hughes","folder":1,"songnum":53,"bpm":140,"bb":"Happy Day","tab":"https://tabs.ultimate-guitar.com/tab/tim-hughes/happy-day-chords-409104"},{"key":"r53","title":"Here For You","artist":"Matt Redman","folder":20,"songnum":1,"bpm":170,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/here-for-you-chords-1106276"},{"key":"r54","title":"House Of Miracles","artist":"Brandon Lake","folder":2,"songnum":1,"bpm":71,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/house-of-miracles-chords-3312011"},{"key":"r55","title":"How Great Thou Art","artist":"Misc Praise Songs","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/how-great-thou-art-chords-877980"},{"key":"r56","title":"I Know A Name","artist":"Elevation Worship","folder":3,"songnum":3,"bpm":86,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/elevation-worship/i-know-a-name-chords-5611626"},{"key":"r57","title":"I Speak Jesus","artist":"Here Be Lions","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/here-be-lions/i-speak-jesus-chords-2854832"},{"key":"r58","title":"I Thank God","artist":"Maverick City Music","folder":26,"songnum":4,"bpm":130,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=PlWVjrP5AfaPrP6xAvgsyzmK&tab_id=32096774"},{"key":"r59","title":"Majesty","artist":"Delirious?","folder":20,"songnum":1,"bpm":142,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/delirious/majesty-chords-399768"},{"key":"r60","title":"Psalm 100","artist":"Chris Tomlin","folder":26,"songnum":4,"bpm":123,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/psalm-100-chords-1675631"},{"key":"r61","title":"Raise A Hallelujah (ver 3)","artist":"Bethel Music","folder":1,"songnum":30,"bpm":82,"bb":"Raise A Hallelujah","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=F719-KQCdqGAijSlp4j5fhhD&tab_id=32096594"},{"key":"r62","title":"Same God","artist":"Elevation Worship","folder":2,"songnum":1,"bpm":72,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=CmbrKweZG0MkQHlmI_V3SFbc&tab_id=32096516"},{"key":"r63","title":"Sing Sing Sing","artist":"Chris Tomlin","folder":1,"songnum":56,"bpm":145,"bb":"Sing Sing Sing Toms","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/sing-sing-sing-chords-746522"},{"key":"r64","title":"The Heart Of Worship","artist":"Matt Redman","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=lIERiBrov-mQyOMRPRolVJvk&tab_id=1998811"},{"key":"r65","title":"This Is Our God","artist":"Phil Wickham","folder":17,"songnum":6,"bpm":80,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/phil-wickham/this-is-our-god-chords-4577840"},{"key":"r66","title":"Who Is This Man","artist":"Cody Carnes","folder":17,"songnum":6,"bpm":91,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=m1fsuAylQnClK0wF4WyPwzFa&tab_id=32096795"},{"key":"r67","title":"Yahweh","artist":"Rend Collective","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/rend-collective/yahweh-chords-2293999"},{"key":"r68","title":"You And You Alone","artist":"UPPERROOM","folder":26,"songnum":4,"bpm":138,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/upperroom/you-and-you-alone-chords-2466884"},{"key":"r69","title":"Ah Lord God","artist":"Don Moen","folder":26,"songnum":4,"bpm":126,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/don-moen/ah-lord-god-chords-1967785"},{"key":"r70","title":"Ancient Gates","artist":"Brooke Fraser (Brooke Ligertwood)","folder":17,"songnum":6,"bpm":95,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brooke-fraser-brooke-ligertwood/ancient-gates-chords-4098676"},{"key":"r71","title":"Come Now Is The Time To Worship","artist":"Brian Doerksen","folder":1,"songnum":13,"bpm":96,"bb":"Come Now is the Time to Worship","tab":"https://tabs.ultimate-guitar.com/tab/brian-doerksen/come-now-is-the-time-to-worship-chords-118607"},{"key":"r72","title":"Ever Be (ver 2)","artist":"Bethel Music","folder":1,"songnum":85,"bpm":69,"bb":"Ever Be TCC","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/ever-be-chords-1973315"},{"key":"r73","title":"Glorious Day","artist":"Passion","folder":1,"songnum":9,"bpm":110,"bb":"Glorious Day","tab":"https://tabs.ultimate-guitar.com/tab/passion/glorious-day-chords-1928417"},{"key":"r74","title":"Great I Am","artist":"Phillips, Craig & Dean","folder":20,"songnum":1,"bpm":160,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/phillips-craig-dean/great-i-am-chords-1243304"},{"key":"r75","title":"Here As In Heaven","artist":"Gardiner Sisters","folder":26,"songnum":4,"bpm":139,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/gardiner-sisters/here-as-in-heaven-chords-2248815"},{"key":"r76","title":"Holy Ground","artist":"Passion","folder":2,"songnum":1,"bpm":72,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=wklrY2F6YD6EsfTmFK0QsTZG&tab_id=32096810"},{"key":"r77","title":"Holy Spirit","artist":"Jesus Culture","folder":20,"songnum":1,"bpm":144,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jesus-culture/holy-spirit-chords-1196074"},{"key":"r78","title":"I Can See Clearly Now","artist":"Johnny Nash","folder":21,"songnum":1,"bpm":122,"bb":"Reggae 1- backbeat (standard)","tab":"https://tabs.ultimate-guitar.com/tab/johnny-nash/i-can-see-clearly-now-chords-77897"},{"key":"r79","title":"I Love Your Presence","artist":"Bethel Music","folder":3,"songnum":3,"bpm":83,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/i-love-your-presence-chords-1086541"},{"key":"r80","title":"I Love Your Presence","artist":"Vineyard Music","folder":15,"songnum":3,"bpm":158,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/i-love-your-presence-chords-1034085"},{"key":"r81","title":"I Will Wait For You","artist":"Misc Praise Songs","folder":5,"songnum":5,"bpm":114,"bb":"Brushes 5- 3/4 Half time Shuffle Pop (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/i-will-wait-for-you-chords-2895245"},{"key":"r82","title":"In The Garden","artist":"Alan Jackson","folder":3,"songnum":3,"bpm":87,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=b670zOsJpWh2CFth0LeMy4gT&tab_id=32091335"},{"key":"r83","title":"In Your Hands","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/in-your-hands-chords-405784"},{"key":"r84","title":"Jireh","artist":"Elevation Worship","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=1hBUFOl1c7cGQh5ct8VABIyr&tab_id=32096840"},{"key":"r85","title":"Kalley Heiligenthal - Your Praise Will Ever Be On My Lips","artist":"Bethel Music","folder":20,"songnum":1,"bpm":154,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/kalley-heiligenthal-your-praise-will-ever-be-on-my-lips-chords-1470384"},{"key":"r86","title":"King Of Kings","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/king-of-kings-chords-2761663"},{"key":"r87","title":"King Of Kings","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/king-of-kings-official-3041742"},{"key":"r88","title":"Known By You","artist":"Gateway Worship","folder":2,"songnum":1,"bpm":67,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/gateway-worship/known-by-you-chords-5610186"},{"key":"r89","title":"Most Beautiful - So In Love","artist":"Maverick City Music","folder":26,"songnum":4,"bpm":132,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/maverick-city-music/most-beautiful-so-in-love-chords-2848532"},{"key":"r90","title":"New Wine","artist":"Hillsong Worship","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/new-wine-chords-2251409"},{"key":"r91","title":"Once Again","artist":"Matt Redman","folder":20,"songnum":1,"bpm":160,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/once-again-chords-2163585"},{"key":"r92","title":"Revelation Song","artist":"Kari Jobe","folder":1,"songnum":3,"bpm":63,"bb":"Revelation Song EWB","tab":"https://tabs.ultimate-guitar.com/tab/kari-jobe/revelation-song-chords-976879"},{"key":"r93","title":"Starlight","artist":"Amanda Cook","folder":20,"songnum":1,"bpm":150,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/amanda-cook/starlight-chords-1754513"},{"key":"r94","title":"The Heart Of Worship","artist":"Matt Redman","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=zD9h6XUO8WNW1_KhP7CcAmO0&tab_id=32096432"},{"key":"r95","title":"This Is The Day","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/this-is-the-day-chords-967599"},{"key":"r96","title":"We Make Space","artist":"Jonathan David & Melissa Helser","folder":2,"songnum":1,"bpm":58,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jonathan-david-melissa-helser/we-make-space-chords-4064653"},{"key":"r97","title":"What A Beautiful Name (ver 4)","artist":"Hillsong Worship","folder":1,"songnum":22,"bpm":136,"bb":"What a Beautiful Name","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/what-a-beautiful-name-chords-1877979"},{"key":"r98","title":"What A Mighty God We Serve","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":95,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/what-a-mighty-god-we-serve-chords-1484994"},{"key":"r99","title":"Worthy","artist":"Elevation Worship","folder":2,"songnum":1,"bpm":67,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=EUUEJGmK5O2Wi-an_IppAabp&tab_id=32096864"},{"key":"r100","title":"You Are My King Amazing Love","artist":"Passion","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/passion/you-are-my-king-amazing-love-chords-524860"},{"key":"r101","title":"You Deserve It All","artist":"Bethel Music","folder":15,"songnum":3,"bpm":138,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/you-deserve-it-all-chords-2119605"},{"key":"r102","title":"Yeshua","artist":"Jesus Image","folder":26,"songnum":4,"bpm":137,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=nMRqo0v_Rha0SNMeBkwmR_D0&tab_id=32097218"},{"key":"r104","title":"Alive","artist":"Hillsong Worship","folder":26,"songnum":4,"bpm":132,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/alive-chords-1675628"},{"key":"r105","title":"Alive Forever Amen","artist":"Travis Cottrell","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/travis-cottrell/alive-forever-amen-chords-1754347"},{"key":"r106","title":"At The Cross","artist":"Misc Praise Songs","folder":1,"songnum":39,"bpm":70,"bb":"At the Cross (LRR) TCC","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/at-the-cross-chords-1483591"},{"key":"r107","title":"Be The Center","artist":"Vineyard Music","folder":1,"songnum":31,"bpm":75,"bb":"Be The Center_Blues1","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/be-the-center-chords-1210213"},{"key":"r108","title":"Better Is One Day","artist":"Matt Redman","folder":1,"songnum":5,"bpm":77,"bb":"Better is one day in your courts","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/better-is-one-day-chords-140415"},{"key":"r109","title":"Closer","artist":"Bethel Music","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/closer-chords-1196115"},{"key":"r110","title":"Closer (ver 2)","artist":"Bethel Music","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/closer-chords-1748801"},{"key":"r111","title":"Fear Is Not My Future","artist":"Brandon Lake","folder":26,"songnum":4,"bpm":138,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/brandon-lake/fear-is-not-my-future-chords-4192993"},{"key":"r112","title":"Freedom Reigns","artist":"Jesus Culture","folder":2,"songnum":1,"bpm":71,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jesus-culture/freedom-reigns-chords-1012530"},{"key":"r113","title":"Is He Worthy","artist":"Chris Tomlin","folder":2,"songnum":1,"bpm":73,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/is-he-worthy-chords-2480554"},{"key":"r114","title":"Joy In The Morning","artist":"Tauren Wells","folder":2,"songnum":1,"bpm":67,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/tauren-wells/joy-in-the-morning-chords-4226893"},{"key":"r115","title":"Let Everything That Has Breath","artist":"Matt Redman","folder":1,"songnum":75,"bpm":115,"bb":"Let everything that","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/let-everything-that-has-breath-chords-140422"},{"key":"r116","title":"Let The River Flow","artist":"Vineyard Music","folder":20,"songnum":1,"bpm":169,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/let-the-river-flow-chords-277186"},{"key":"r117","title":"Let The River Flow","artist":"Darrell Evans","folder":17,"songnum":6,"bpm":89,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/darrell-evans/let-the-river-flow-chords-2124459"},{"key":"r118","title":"Nothing But The Blood Of Jesus","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":94,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/nothing-but-the-blood-of-jesus-chords-877984"},{"key":"r119","title":"Open The Eyes Of My Heart","artist":"Michael W. Smith","folder":1,"songnum":20,"bpm":107,"bb":"Open The Eyes of My Heart","tab":"https://tabs.ultimate-guitar.com/tab/michael-w-smith/open-the-eyes-of-my-heart-chords-852420"},{"key":"r120","title":"This Is My Desire Lord I Give You My Heart","artist":"Oslo Gospel Choir","folder":1,"songnum":12,"bpm":74,"bb":"I Give You My Heart (This is My Desire)","tab":"https://tabs.ultimate-guitar.com/tab/oslo-gospel-choir/this-is-my-desire-lord-i-give-you-my-heart-chords-1928827"},{"key":"r121","title":"Way Maker","artist":"Leeland","folder":1,"songnum":35,"bpm":68,"bb":"Way maker","tab":"https://tabs.ultimate-guitar.com/tab/leeland/way-maker-chords-2806757"},{"key":"r122","title":"Yahweh","artist":"Andy Park","folder":26,"songnum":4,"bpm":107,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/andy-park/yahweh-chords-1764643"},{"key":"r123","title":"After You","artist":"UPPERROOM","folder":20,"songnum":1,"bpm":142,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=1LXi0XYviGe8z8HZH5vF4Dq4&tab_id=32096927"},{"key":"r124","title":"As The Deer (ver 3)","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/as-the-deer-chords-1067236"},{"key":"r125","title":"Did You Feel The Mountains Tremble","artist":"Matt Redman","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/did-you-feel-the-mountains-tremble-chords-549729"},{"key":"r126","title":"Forever Yhwh","artist":"Elevation Worship","folder":15,"songnum":3,"bpm":142,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=VpafSdDAVTtJv35ElsJVSXQT&tab_id=32096984"},{"key":"r127","title":"Graves Into Gardens","artist":"Bethel Music","folder":1,"songnum":2,"bpm":126,"bb":"Graves into Gardens","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/graves-into-gardens-chords-4043458"},{"key":"r128","title":"I See Heaven (ver 3)","artist":"Bryan & Katie Torwalt","folder":26,"songnum":4,"bpm":122,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bryan-katie-torwalt/i-see-heaven-chords-1740253"},{"key":"r129","title":"King Of Glory","artist":"Misty Edwards","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misty-edwards/king-of-glory-chords-1044067"},{"key":"r130","title":"Light Of Your Face","artist":"Jesus Culture","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jesus-culture/light-of-your-face-chords-1063152"},{"key":"r131","title":"My Jesus","artist":"Anne Wilson","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=63Dgwge-zvYEo4I_auGzgLKQ&tab_id=32096681"},{"key":"r132","title":"Oh Lord Youre Beautiful","artist":"Bethel Music","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/oh-lord-youre-beautiful-chords-1953331"},{"key":"r133","title":"Surrounded Fight My Battles (ver 2)","artist":"Bethel Music","folder":1,"songnum":33,"bpm":130,"bb":"Surrounded (Fight My Battles)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/surrounded-fight-my-battles-chords-2463792"},{"key":"r134","title":"To Him Who Sits On The Throne","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/to-him-who-sits-on-the-throne-chords-751010"},{"key":"r135","title":"To The One","artist":"UPPERROOM","folder":3,"songnum":3,"bpm":80,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=k9xHQFFEIXLv_sjzlNLUt_A7&tab_id=32098652"},{"key":"r136","title":"You Are My Hiding Place","artist":"Selah","folder":26,"songnum":4,"bpm":110,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/selah/you-are-my-hiding-place-chords-1014044"},{"key":"r137","title":"Youre Beautiful (ver 3)","artist":"Phil Wickham","folder":17,"songnum":6,"bpm":83,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/phil-wickham/youre-beautiful-chords-831625"},{"key":"r138","title":"A Storm All Around You","artist":"Jon Thurlow","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jon-thurlow/a-storm-all-around-you-chords-1133429"},{"key":"r139","title":"All Who Are Thirsty","artist":"Vineyard Worship","folder":1,"songnum":27,"bpm":150,"bb":"All Who Are Thirsty (Blues 3)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-worship/all-who-are-thirsty-chords-642368"},{"key":"r140","title":"Amazing Grace","artist":"Misc Praise Songs","folder":1,"songnum":1,"bpm":50,"bb":"Amazing Grace (custom 3-4)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/amazing-grace-chords-66733"},{"key":"r141","title":"Amazing Grace My Chains Are Gone","artist":"Matt Redman","folder":1,"songnum":25,"bpm":63,"bb":"Amazing Grace (My Chains are Gone)","tab":"https://tabs.ultimate-guitar.com/tab/matt-redman/amazing-grace-my-chains-are-gone-chords-1499313"},{"key":"r142","title":"Are You Washed In The Blood","artist":"Misc Praise Songs","folder":26,"songnum":4,"bpm":111,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/are-you-washed-in-the-blood-chords-1133064"},{"key":"r143","title":"Build My Life","artist":"Housefires","folder":20,"songnum":1,"bpm":140,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/housefires/build-my-life-official-2827247"},{"key":"r144","title":"Draw Me Close (ver 2)","artist":"Vineyard Music","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=BCCiGZDJChws-dLxQw9zkmNG&tab_id=32096138"},{"key":"r145","title":"Even So Come","artist":"Chris Tomlin","folder":5,"songnum":5,"bpm":162,"bb":"Brushes 5- 3/4 Half time Shuffle Pop (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/even-so-come-chords-1698142"},{"key":"r146","title":"Forever","artist":"Kari Jobe","folder":1,"songnum":47,"bpm":72,"bb":"Forever","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=kuY687SfO_8qRkyCPfSiiOLl&tab_id=32090843"},{"key":"r147","title":"Give Me Jesus","artist":"UPPERROOM","folder":2,"songnum":1,"bpm":70,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/upperroom/give-me-jesus-chords-3840338"},{"key":"r148","title":"God Of Wonders","artist":"Chris Tomlin","folder":1,"songnum":11,"bpm":81,"bb":"God of Wonders","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/god-of-wonders-chords-679989"},{"key":"r149","title":"Goodness Of God","artist":"Bethel Music","folder":2,"songnum":1,"bpm":63,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/goodness-of-god-official-3010214"},{"key":"r150","title":"Goodness Of God","artist":"Bethel Music","folder":2,"songnum":1,"bpm":63,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=w_ln7O4fMBC4oTPmfxfDvT6j&tab_id=32096180"},{"key":"r151","title":"Have Yourself A Merry Little Christmas","artist":"Misc Christmas","folder":5,"songnum":3,"bpm":144,"bb":"Brushes 3- Half time shuffle (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-christmas/have-yourself-a-merry-little-christmas-chords-1007691"},{"key":"r152","title":"How Great Is Our God (ver 7)","artist":"Chris Tomlin","folder":1,"songnum":17,"bpm":76,"bb":"How Great is Our God","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/how-great-is-our-god-chords-1469892"},{"key":"r153","title":"I Give You My Heart","artist":"Hillsong Worship","folder":1,"songnum":28,"bpm":70,"bb":"I Give You My Heart","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/i-give-you-my-heart-chords-186981"},{"key":"r154","title":"It Is Well","artist":"Bethel Music","folder":2,"songnum":1,"bpm":65,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/it-is-well-chords-1478340"},{"key":"r155","title":"My Weapon","artist":"Natalie Grant","folder":17,"songnum":6,"bpm":82,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=934uE1M1KomWLBB6-3JqDDM2&tab_id=32097302"},{"key":"r156","title":"No Sweeter Name","artist":"Kari Jobe","folder":15,"songnum":3,"bpm":120,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/kari-jobe/no-sweeter-name-chords-954093"},{"key":"r157","title":"Oh The Cross","artist":"UPPERROOM","folder":15,"songnum":3,"bpm":152,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/upperroom/oh-the-cross-chords-2998181"},{"key":"r158","title":"Old For New","artist":"Bethel Music","folder":2,"songnum":1,"bpm":72,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/old-for-new-chords-1905950"},{"key":"r159","title":"The Blood","artist":"Bethel Music","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/the-blood-chords-4381229"},{"key":"r160","title":"The Old Rugged Cross","artist":"Alan Jackson","folder":6,"songnum":5,"bpm":79,"bb":"Country 5- Brushes Train (standard)","tab":"https://tabs.ultimate-guitar.com/tab/alan-jackson/the-old-rugged-cross-chords-1741853"},{"key":"r161","title":"The Power Of Your Love","artist":"Hillsong Worship","folder":17,"songnum":6,"bpm":81,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/the-power-of-your-love-chords-186983"},{"key":"r162","title":"Trees Of The Field","artist":"Misc Praise Songs","folder":20,"songnum":1,"bpm":180,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/trees-of-the-field-chords-957716"},{"key":"r163","title":"Who You Say I Am","artist":"Hillsong Worship","folder":1,"songnum":29,"bpm":58,"bb":"Who You Say I Am (Blues 4- 6/8)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/who-you-say-i-am-chords-2240451"},{"key":"r164","title":"You Are So Good To Me","artist":"Third Day","folder":6,"songnum":6,"bpm":79,"bb":"Country 6- Str 8 (standard)","tab":"https://www.praisecharts.com/songs/details/7340/you-are-so-good-to-me-sheet-music"},{"key":"r165","title":"You Keep On Getting Better","artist":"Maverick City Music","folder":2,"songnum":1,"bpm":76,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/maverick-city-music/you-keep-on-getting-better-chords-2861609"},{"key":"r166","title":"Reckless Love","artist":"Cory Asbury","folder":15,"songnum":3,"bpm":111,"bb":"Odd Time 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=5D-1g1VxcgpWbp0d_9nqEomQ&tab_id=32097104"},{"key":"r167","title":"Tremble","artist":"UPPERROOM","folder":20,"songnum":1,"bpm":147,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=3UghQewvpMV-HIOy-_ELDFWQ&tab_id=32097380"},{"key":"r168","title":"A Mighty Fortress Is Our God","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=A%20Mighty%20Fortress%20Is%20Our%20God"},{"key":"r169","title":"All to Jesus I Surrender","artist":"Kari Jobe","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=All%20to%20Jesus%20I%20Surrender"},{"key":"r170","title":"Bethel Music - No Longer Slaves - Break Every Chain","artist":"Misc Mashups","folder":1,"songnum":14,"bpm":null,"bb":"No Longer Slaves","tab":"https://tabs.ultimate-guitar.com/tab/misc-mashups/bethel-music-no-longer-slaves-break-every-chain-chords-2770447"},{"key":"r171","title":"Come Thou Fount","artist":"David Crowder Band","folder":24,"songnum":6,"bpm":null,"bb":"Waltz (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=Come%20Thou%20Fount"},{"key":"r172","title":"Crown Him with Many Crowns","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=Crown%20Him%20with%20Many%20Crowns"},{"key":"r173","title":"Elevation Worship - Trust In God - Cody Carnes - Firm Foundation He Wont","artist":"Misc Mashups","folder":3,"songnum":3,"bpm":null,"bb":"Blues 3- 6/8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-mashups/elevation-worship-trust-in-god-cody-carnes-firm-foundation-he-wont-chords-4969885"},{"key":"r174","title":"Every Nation Every Soul","artist":"Lindy Conant","folder":2,"songnum":1,"bpm":66,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/lindy-conant/every-nation-every-soul-chords-1835377"},{"key":"r175","title":"For Your Name","artist":"Hillsong Worship","folder":26,"songnum":4,"bpm":136,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/hillsong-worship/for-your-name-chords-1016439"},{"key":"r176","title":"Glory To His Name","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/glory-to-his-name-chords-1699591"},{"key":"r177","title":"Grace Like Rain","artist":"Chris Tomlin","folder":26,"songnum":4,"bpm":100,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/chris-tomlin/grace-like-rain-chords-402006"},{"key":"r178","title":"Healing Word","artist":"Holland Davis","folder":26,"songnum":4,"bpm":115,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/holland-davis/healing-word-chords-3662159"},{"key":"r179","title":"Hymns Mashup - How Great Thou Art - It Is Well - Great Is Thy Faithfulness","artist":"Anthem Lights","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/anthem-lights/hymns-mashup-how-great-thou-art-it-is-well-great-is-thy-faithfulness-chords-1766034"},{"key":"r181","title":"I Keep Falling In Love With Him","artist":"The Lanny Wolfe Trio","folder":17,"songnum":6,"bpm":95,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/the-lanny-wolfe-trio/i-keep-falling-in-love-with-him-chords-2325597"},{"key":"r182","title":"I Stand In Awe","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/i-stand-in-awe-chords-196901"},{"key":"r183","title":"Ill Fly Away","artist":"Misc Praise Songs","folder":2,"songnum":1,"bpm":52,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/ill-fly-away-chords-3837845"},{"key":"r184","title":"Ill Stand","artist":"Michael W. Smith","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/michael-w-smith/ill-stand-chords-967118"},{"key":"r185","title":"In Him We Live","artist":"Kent Henry","folder":17,"songnum":6,"bpm":136,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/kent-henry/in-him-we-live-chords-2540271"},{"key":"r186","title":"In The Secret","artist":"Andy Park","folder":26,"songnum":4,"bpm":120,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/andy-park/in-the-secret-chords-1013914"},{"key":"r187","title":"Jesus Youre Beautiful","artist":"Jon Thurlow","folder":26,"songnum":4,"bpm":126,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jon-thurlow/jesus-youre-beautiful-chords-1246967"},{"key":"r188","title":"John B Vaughan - We Shall See The King","artist":"Misc Praise Songs","folder":2,"songnum":1,"bpm":74,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/misc-praise-songs/john-b-vaughan-we-shall-see-the-king-chords-2265103"},{"key":"r189","title":"Joyful, Joyful, We Adore Thee","artist":"Misc Praise Songs","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=Joyful%2C%20Joyful%2C%20We%20Adore%20Thee"},{"key":"r190","title":"Let Your Glory Fall","artist":"Vineyard Music","folder":2,"songnum":1,"bpm":68,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-music/let-your-glory-fall-chords-399548"},{"key":"r191","title":"Oh Happy Day","artist":"Elvis Presley","folder":26,"songnum":4,"bpm":100,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/elvis-presley/oh-happy-day-chords-840386"},{"key":"r192","title":"Refiners Fire","artist":"Vineyard Worship","folder":2,"songnum":1,"bpm":75,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/vineyard-worship/refiners-fire-chords-277187"},{"key":"r193","title":"Restoration","artist":"David Brymer","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/david-brymer/restoration-chords-1081256"},{"key":"r194","title":"The More I Seek You","artist":"Kari Jobe","folder":2,"songnum":1,"bpm":65,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/kari-jobe/the-more-i-seek-you-chords-813450"},{"key":"r195","title":"There Is Power in the Blood","artist":"Don Gibson","folder":6,"songnum":6,"bpm":null,"bb":"Country 6- Str 8 (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=There%20Is%20Power%20in%20the%20Blood"},{"key":"r196","title":"Theres No Other Name","artist":"Bethel Music","folder":17,"songnum":6,"bpm":null,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/theres-no-other-name-chords-1732530"},{"key":"r197","title":"Theres Something About That Name","artist":"Bill & Gloria Gaither","folder":24,"songnum":6,"bpm":66,"bb":"Waltz (standard)","tab":"https://tabs.ultimate-guitar.com/tab/bill-gloria-gaither/theres-something-about-that-name-chords-1446168"},{"key":"r198","title":"To God Be the Glory","artist":"Misc Praise Songs","folder":24,"songnum":6,"bpm":100,"bb":"Waltz (standard)","tab":"https://www.ultimate-guitar.com/search.php?search_type=title&value=To%20God%20Be%20the%20Glory"},{"key":"r199","title":"Victors Crown","artist":"Darlene Zschech","folder":20,"songnum":1,"bpm":150,"bb":"Rock 1 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/darlene-zschech/victors-crown-chords-1219790"},{"key":"r200","title":"We Bring Praises","artist":"Daniel Vaughn","folder":2,"songnum":1,"bpm":79,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/user/tab/view?h=eEVkWrcXZ94jlDbdhDY-K-M_&tab_id=5677418"},{"key":"r202","title":"We Cry Holy","artist":"Kutless","folder":17,"songnum":6,"bpm":80,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/kutless/we-cry-holy-chords-1159245"},{"key":"r203","title":"We Love Your Name","artist":"Jaye Thomas","folder":2,"songnum":1,"bpm":71,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/jaye-thomas/we-love-your-name-chords-1697514"},{"key":"r204","title":"What A Beautiful Name","artist":"Bethel Music","folder":1,"songnum":22,"bpm":68,"bb":"What a Beautiful Name","tab":"https://tabs.ultimate-guitar.com/tab/bethel-music/what-a-beautiful-name-chords-1942419"},{"key":"r205","title":"Your Goodness","artist":"The Bridge Band","folder":2,"songnum":1,"bpm":63,"bb":"Ballad 2 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/the-bridge-band/your-goodness-chords-2781403"},{"key":"r206","title":"Your Love Is Extravagant","artist":"Casting Crowns","folder":17,"songnum":6,"bpm":80,"bb":"Pop 6- 8ths (standard)","tab":"https://tabs.ultimate-guitar.com/tab/casting-crowns/your-love-is-extravagant-chords-196135"},{"key":"x1","title":"Praise","artist":"Elevation Worship","folder":26,"songnum":4,"bpm":127,"bb":"Pop-Rock Str8 (standard)","tab":"https://tabs.ultimate-guitar.com/tab/elevation-worship/praise-chords-4780226"}]
 </script>
+
 <script>
 /*
- * BeatBuddy songbook with +/- BPM controls.
+ * BeatBuddy songbook: one tap = send the song (and tempo) to BeatBuddy via Web MIDI AND open its saved tab.
+ * Same MIDI as index.html: CC0 bank, CC32 = folder-1, Program Change = song-1, then after `delay` ms
+ * CC106 = floor(bpm/128), CC107 = bpm % 128.
+ * window.open() is called synchronously inside the tap handler (after the synchronous song-select sends,
+ * before the tempo timer) so Chrome treats it as user-initiated and doesn't block it.
+ * URL params: out=TEXT (preferred output name, default WIDI), ch=1-16, delay=MS (default 400).
+ *
+ * Optional "Auto-start beat" (checkbox, OFF by default, remembered in localStorage bb_autostart / bb_startdelay):
+ * after the tempo, wait "Start after" ms (300, 600 = default, 1000, 1500, 2000) and send CC114 value 1 = "Start playback of
+ * the current song". With no bpm the start goes delay + startDelay after the song select (default 400+600 = 1000 ms).
+ * A new tap (or Stop) cancels any tempo/start still pending from the previous tap, so a stale start never fires.
+ * "Stop beat" sends MIDI System Real Time Stop (0xFC); MIDI-IN > Stop is Enabled by default (manual p.41).
+ * "Start beat" sends CC114 value 1 (Bn 72 01, same message as auto-start) on the selected channel, after cancelling any
+ * pending tempo/auto-start timer so nothing is sent twice. Works whether or not Auto-start is ticked.
+ *
+ * Live tempo, after a song is selected: one − and one + change the tempo by exactly 1 BPM (clamped to 40–300)
+ * and send only the same tempo pair the song tap uses — CC106 = floor(bpm/128) then CC107 = bpm % 128 — on the
+ * page's MIDI channel (URL ch=, default 1). BeatBuddy applies the tempo when the LSB arrives and ignores a tempo
+ * outside 40–300 (manual firmware 4.1.6, "Tempo MSB & Tempo LSB"). The buttons do not resend the song, do not
+ * send Start or Stop, and do not cancel a pending tempo or auto-start, so the beat keeps playing.
+ * A song with no bpm shows 120, labeled "no saved BPM", until − or + is pressed (the song tap itself still
+ * sends no tempo, same as before). Tapping a song loads that song's own bpm again.
  */
 (function (global) {
   'use strict';
-  var CH = 1, DELAY = 400, PREF = 'WIDI';
-  var STOP = [0xFC];
-  function $(id) { return document.getElementById(id); }
-  var SONGS = [];
-  try { SONGS = JSON.parse($('songs-data').textContent); } catch (e) { console.error(e); }
-  function safeTab(url) {
-    try { var u = new URL(url); return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null; }
-    catch (e) { return null; }
+  function buildSongMessages(song, ch) {
+    var c = (ch || 1) - 1;
+    var sel = [[0xB0 | c, 0x00, 0], [0xB0 | c, 0x20, song.folder - 1], [0xC0 | c, song.songnum - 1]];
+    var tempo = null;
+    if (song.bpm != null && song.bpm >= 40 && song.bpm <= 300) tempo = [[0xB0 | c, 106, Math.floor(song.bpm / 128)], [0xB0 | c, 107, song.bpm % 128]];
+    return { select: sel, tempo: tempo, start: [0xB0 | c, 114, 1] };
   }
-  function filterSongs(songs, q) {
-    q = (q || '').trim().toLowerCase();
-    if (!q) return songs;
-    return songs.filter(function (s) {
-      return (s.title + ' ' + (s.artist || '') + ' ' + (s.bb || '')).toLowerCase().indexOf(q) !== -1;
+  function pickOutput(outputs, pref) {
+    if (!outputs.length) return null;
+    var want = (pref || '').toLowerCase();
+    if (want) for (var i = 0; i < outputs.length; i++) if ((outputs[i].name || '').toLowerCase().indexOf(want) !== -1) return outputs[i];
+    return outputs[0];
+  }
+  function safeTab(url) {
+    try { var u = new URL(url); return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null; } catch (e) { return null; }
+  }
+  function sortSongs(songs) {
+    return songs.slice().sort(function (a, b) {
+      return a.title.localeCompare(b.title, 'en', { sensitivity: 'base' }) || (a.artist || '').localeCompare(b.artist || '', 'en', { sensitivity: 'base' });
     });
   }
-  function buildMessages(song, opts) {
-    var c = (opts.ch || 1) - 1;
-    var msgs = [
-      { label: 'Bank MSB', bytes: [0xB0 | c, 0x00, 0], delayAfter: 0 },
-      { label: 'Bank LSB CC32=' + (song.folder - 1), bytes: [0xB0 | c, 0x20, song.folder - 1], delayAfter: 0 },
-      { label: 'PC ' + (song.songnum - 1), bytes: [0xC0 | c, song.songnum - 1], delayAfter: song.bpm ? (opts.delay || DELAY) : 0 }
-    ];
-    if (song.bpm) {
-      var msb = Math.floor(song.bpm / 128), lsb = song.bpm % 128;
-      msgs.push({ label: 'Tempo MSB', bytes: [0xB0 | c, 106, msb], delayAfter: 0 });
-      msgs.push({ label: 'Tempo LSB ' + song.bpm, bytes: [0xB0 | c, 107, lsb], delayAfter: 0 });
-    }
-    return msgs;
+  function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function filterSongs(songs, q) {
+    var words = norm(q).split(' ').filter(Boolean);
+    if (!words.length) return songs;
+    return songs.filter(function (s) {
+      var hay = norm(s.title + ' ' + s.artist + ' ' + s.bb + ' f' + s.folder + ' s' + s.songnum);
+      return words.every(function (w) { return hay.indexOf(w) !== -1; });
+    });
   }
-  function tapSong(song, opts) {
-    var out = opts.out;
-    var msgs = buildMessages(song, opts);
-    msgs.forEach(function (m) { out.send(m.bytes); });
-    var tab = safeTab(song.tab || '');
-    var opened = false;
-    if (opts.openTabs && tab) {
-      try { opts.win.open(tab, '_blank', 'noopener'); opened = true; } catch (e) {}
+  /*
+   * The one-tap action. Order matters:
+   *   1. out.send() bank + folder + Program Change (synchronous)
+   *   2. window.open(tab, '_blank') — still inside the user's tap, so not popup-blocked
+   *   3. setTimeout(delay) → tempo CC106 + CC107
+   *   4. only if env.autoStart: setTimeout(startDelay) after the tempo → CC114 value 1
+   *      (no tempo: one timer of delay + startDelay after the song select)
+   * env = { out, win, setTimeout, clearTimeout, ch, delay, openTabs, autoStart, startDelay, onTempo, onStart, tempoNow }
+   * tempoNow(), if set, is read when the delayed tempo is sent. A live ±1 nudge updates it so the queued
+   * tempo follows the buttons without cancelling the timer (and without cancelling a chained auto-start).
+   * Returns r with r.cancel(): clears whatever tempo/start timer is still pending (used on the next tap / Stop).
+   */
+  function tapSong(song, env) {
+    var m = buildSongMessages(song, env.ch);
+    var r = { sent: false, opened: false, tab: safeTab(song.tab || ''), startAt: null, cancelled: false, cancel: function () {} };
+    if (!env.out) return r;
+    var timer = null;
+    function later(fn, ms) { timer = env.setTimeout(function () { timer = null; if (!r.cancelled) fn(); }, ms); }
+    r.cancel = function () { r.cancelled = true; if (timer !== null && env.clearTimeout) env.clearTimeout(timer); timer = null; };
+    function start() { env.out.send(m.start); if (env.onStart) env.onStart(); }
+    var sd = env.startDelay != null ? env.startDelay : 600;
+    m.select.forEach(function (b) { env.out.send(b); });
+    r.sent = true;
+    if (r.tab && env.openTabs) { env.win.open(r.tab, '_blank'); r.opened = true; }
+    if (m.tempo) {
+      later(function () {
+        var bytes = m.tempo;
+        if (env.tempoNow) { var now = env.tempoNow(); if (now != null) bytes = tempoMessages(now, env.ch); }
+        bytes.forEach(function (b) { env.out.send(b); }); if (env.onTempo) env.onTempo();
+        if (env.autoStart) later(start, sd);
+      }, env.delay);
+      if (env.autoStart) r.startAt = env.delay + sd;
+    } else if (env.autoStart) {
+      later(start, env.delay + sd); r.startAt = env.delay + sd;
     }
-    var startAt = null;
-    if (opts.autoStart) {
-      var sd = opts.startDelay || 600;
-      var wait = (song.bpm ? sd : (opts.delay || DELAY) + sd);
-      startAt = wait;
-      var t = opts.setTimeout(function () {
-        try { out.send([0xB0 | ((opts.ch || 1) - 1), 114, 1]); } catch (e) {}
-        if (opts.onStart) opts.onStart();
-      }, wait);
-      return { sent: true, tab: tab, opened: opened, startAt: startAt, cancel: function () { opts.clearTimeout(t); } };
-    }
-    return { sent: true, tab: tab, opened: opened, startAt: null, cancel: function () {} };
+    return r;
   }
-  function startBeat(opts) {
-    if (opts.cancel) opts.cancel();
-    var out = opts.out;
-    if (!out) return { sent: false };
-    try { out.send([0xB0 | ((opts.ch || 1) - 1), 114, 1]); return { sent: true }; }
-    catch (e) { return { sent: false, error: e }; }
+  /*
+   * Manual "Start beat": env = { out, ch, cancel }. Always calls cancel() first (pending tempo/auto-start),
+   * then sends CC114 = 1 on channel ch if there is an output. Returns { sent, bytes }.
+   */
+  function startBeat(env) {
+    if (env.cancel) env.cancel();
+    var bytes = buildSongMessages({ folder: 1, songnum: 1 }, env.ch).start;
+    if (!env.out) return { sent: false, bytes: bytes };
+    env.out.send(bytes);
+    return { sent: true, bytes: bytes };
   }
-  var access = null, outputs = [], userPicked = false, lastTap = 0, pending = null;
+  var STOP = [0xFC];   // MIDI System Real Time Stop (channel-less)
+  var START_DELAYS = [300, 600, 1000, 1500, 2000];
+  var BPM_MIN = 40, BPM_MAX = 300, BPM_DEFAULT = 120;
+  function clampBpm(bpm) {
+    var n = Math.round(Number(bpm));
+    if (!isFinite(n)) return BPM_DEFAULT;
+    if (n < BPM_MIN) return BPM_MIN;
+    if (n > BPM_MAX) return BPM_MAX;
+    return n;
+  }
+  // Songs with a usable bpm keep it. Anything else (missing, blank, out of range) starts the live control at 120.
+  function initialBpm(song) {
+    if (song && song.bpm != null && song.bpm >= BPM_MIN && song.bpm <= BPM_MAX) return { bpm: song.bpm, isDefault: false };
+    return { bpm: BPM_DEFAULT, isDefault: true };
+  }
+  // CC106 (MSB) then CC107 (LSB). BPM = MSB * 128 + LSB. Status byte uses the same channel as song select.
+  function tempoMessages(bpm, ch) {
+    var c = (ch || 1) - 1;
+    var n = clampBpm(bpm);
+    return [[0xB0 | c, 106, Math.floor(n / 128)], [0xB0 | c, 107, n % 128]];
+  }
+  // Exactly one BPM. Other deltas are ignored so the buttons cannot jump.
+  function nudgeTempo(bpm, delta) {
+    var cur = clampBpm(bpm);
+    if (delta !== 1 && delta !== -1) return cur;
+    return clampBpm(cur + delta);
+  }
+  var api = { buildSongMessages: buildSongMessages, pickOutput: pickOutput, safeTab: safeTab, sortSongs: sortSongs,
+              filterSongs: filterSongs, tapSong: tapSong, startBeat: startBeat, STOP: STOP, START_DELAYS: START_DELAYS,
+              BPM_MIN: BPM_MIN, BPM_MAX: BPM_MAX, BPM_DEFAULT: BPM_DEFAULT,
+              clampBpm: clampBpm, initialBpm: initialBpm, tempoMessages: tempoMessages, nudgeTempo: nudgeTempo };
+  if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
+  global.BBSongs = api;
+
+  // ---------------- Browser UI ----------------
+  var $ = function (id) { return document.getElementById(id); };
+  var params = new URLSearchParams(location.search);
+  function intP(n, d, lo, hi) { var v = Number(params.get(n)); return (params.get(n) !== null && Number.isInteger(v) && v >= lo && v <= hi) ? v : d; }
+  var PREF = (params.get('out') || 'WIDI').trim(), CH = intP('ch', 1, 1, 16), DELAY = intP('delay', 400, 0, 5000);
+  var SONGS = sortSongs(JSON.parse($('songs-data').textContent));
+  var access = null, outputs = [], userPicked = false, lastTap = 0, pending = null, live = null;
+
+  try { var saved = localStorage.getItem('bb_opentabs'); if (saved !== null) $('opentabs').checked = saved === '1'; } catch (e) {}
   $('opentabs').addEventListener('change', function () { try { localStorage.setItem('bb_opentabs', this.checked ? '1' : '0'); } catch (e) {} });
-  try { if (localStorage.getItem('bb_opentabs') === '0') $('opentabs').checked = false; } catch (e) {}
-  try { if (localStorage.getItem('bb_autostart') === '1') $('autostart').checked = true; } catch (e) {}
-  try { var sd = localStorage.getItem('bb_startdelay'); if (sd) $('startdelay').value = sd; } catch (e) {}
-  function syncStartUI() { \( ('startdelay').disabled = ! \)('autostart').checked; }
+  try {
+    if (localStorage.getItem('bb_autostart') === '1') $('autostart').checked = true;
+    var sdv = Number(localStorage.getItem('bb_startdelay'));
+    if (START_DELAYS.indexOf(sdv) !== -1) $('startdelay').value = String(sdv);
+  } catch (e) {}
+  function syncStartUI() { $('startdelay').disabled = !$('autostart').checked; }
   syncStartUI();
   $('autostart').addEventListener('change', function () { syncStartUI(); try { localStorage.setItem('bb_autostart', this.checked ? '1' : '0'); } catch (e) {} });
   $('startdelay').addEventListener('change', function () { try { localStorage.setItem('bb_startdelay', this.value); } catch (e) {} });
   function cancelPending() { if (pending) { pending.cancel(); pending = null; } }
+
   function setStatus(t, cls) { $('status').textContent = t; $('status').title = t; $('status').className = cls || ''; }
   function setMsg(text, link) {
-    $('msg').textContent = text || '';
-    if (link) { var a = document.createElement('a'); a.href = link; a.textContent = 'Open tab'; a.target = '_blank'; a.rel = 'noopener'; $('msg').appendChild(document.createTextNode(' ')); $('msg').appendChild(a); }
+    var el = $('msg'); el.textContent = text || '';
+    if (link) { el.appendChild(document.createTextNode(' ')); var a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open tab anyway'; el.appendChild(a); }
   }
   function isPreferred(o) { return !!o && (o.name || '').toLowerCase().indexOf(PREF.toLowerCase()) !== -1; }
+
   function refreshOutputs() {
     outputs = [];
     if (access) access.outputs.forEach(function (o) { if (o.state !== 'disconnected') outputs.push(o); });
     var sel = $('outputs'), prev = sel.value;
     sel.innerHTML = '';
-    if (!outputs.length) { sel.innerHTML = '<option value="">(no MIDI outputs found)</option>'; return null; }
-    var preferred = null;
-    outputs.forEach(function (o) { var opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name; sel.appendChild(opt); if (isPreferred(o)) preferred = o; });
-    if (!preferred) preferred = outputs[0];
+    if (!outputs.length) { sel.innerHTML = '<option value="">(no MIDI outputs found)</option>'; showConn(); return; }
+    var preferred = pickOutput(outputs, PREF);
+    outputs.forEach(function (o) { var opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name; sel.appendChild(opt); });
     var keep = outputs.some(function (o) { return o.id === prev; }) && (userPicked || !isPreferred(preferred));
     sel.value = keep ? prev : preferred.id;
-    return preferred;
+    showConn();
   }
   function currentOutput() {
     var id = $('outputs').value;
     for (var i = 0; i < outputs.length; i++) if (outputs[i].id === id) return outputs[i];
     return null;
   }
+  // Usable = the preferred (WIDI) output, or any output the user picked by hand.
   function usableOutput() { var o = currentOutput(); return o && (isPreferred(o) || userPicked) ? o : null; }
   function showConn() {
-    var o = currentOutput();
-    if (!o) { setStatus('No MIDI device found', 'err'); return; }
-    if (!isPreferred(o) && !userPicked) { setStatus('"' + PREF + '" not connected yet', 'warn'); return; }
-    setStatus('Ready — ' + o.name, 'ok');
+    var o = usableOutput();
+    $('start').classList.toggle('off', !o); $('start').setAttribute('aria-disabled', o ? 'false' : 'true');
+    if (o) { setStatus('✓ ' + o.name, 'ok'); $('connect').style.display = 'none'; }
+    else if (!access) { setStatus('MIDI not connected', 'err'); $('connect').style.display = ''; }
+    else {
+      setStatus('"' + PREF + '" not found', 'err'); $('connect').style.display = '';
+      setMsg('Connect WIDI Master in "MIDI BLE Connect" (Bluetooth Scan → WIDI Master), press Home, come back. ' +
+             (outputs.length ? 'Or pick an output above.' : ''));
+    }
   }
+
   async function connect() {
     if (!window.isSecureContext) { setStatus('Needs HTTPS', 'err'); return; }
     if (!navigator.requestMIDIAccess) { setStatus('Web MIDI not available', 'err'); setMsg('Open this page in Chrome on Android.'); return; }
@@ -186,11 +301,7 @@
     refreshOutputs();
     if (usableOutput()) setMsg('');
   }
-  var bpmOverrides = {};
-  function currentBpm(s) {
-    var v = bpmOverrides[s.key];
-    return (v != null) ? v : (s.bpm || null);
-  }
+
   function render() {
     var list = filterSongs(SONGS, $('q').value), ul = $('list');
     ul.innerHTML = '';
@@ -200,55 +311,84 @@
       b.type = 'button'; b.className = 'song'; b.dataset.key = s.key;
       var t = document.createElement('span'); t.className = 't'; t.textContent = s.title;
       var m = document.createElement('span'); m.className = 'm';
-      var bpm = currentBpm(s);
-      m.textContent = (s.artist ? s.artist + ' · ' : '') + 'F' + s.folder + ' S' + s.songnum + ' ' + s.bb + (bpm ? ' · ' + bpm + ' BPM' : '');
+      m.textContent = (s.artist ? s.artist + ' · ' : '') + 'F' + s.folder + ' S' + s.songnum + ' ' + s.bb + (s.bpm ? ' · ' + s.bpm + ' BPM' : '');
       if (!safeTab(s.tab || '')) { var n = document.createElement('span'); n.className = 'notab'; n.textContent = ' · no tab saved'; m.appendChild(n); }
       b.appendChild(t); b.appendChild(m);
-      var ctl = document.createElement('div'); ctl.className = 'bpm-ctl';
-      var minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−';
-      var val = document.createElement('span'); val.className = 'bpm-val'; val.textContent = bpm || '—';
-      var plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+';
-      function setBpm(delta) {
-        var base = currentBpm(s) || s.bpm || 100;
-        var next = Math.max(40, Math.min(300, base + delta));
-        bpmOverrides[s.key] = next;
-        val.textContent = next;
-        m.textContent = (s.artist ? s.artist + ' · ' : '') + 'F' + s.folder + ' S' + s.songnum + ' ' + s.bb + ' · ' + next + ' BPM';
-      }
-      minus.addEventListener('click', function (e) { e.stopPropagation(); setBpm(-1); });
-      plus.addEventListener('click', function (e) { e.stopPropagation(); setBpm(1); });
-      ctl.appendChild(minus); ctl.appendChild(val); ctl.appendChild(plus);
-      b.appendChild(ctl);
       b.addEventListener('click', function () { onTap(s, b); });
       li.appendChild(b); frag.appendChild(li);
     });
     ul.appendChild(frag);
     $('count').textContent = list.length + ' of ' + SONGS.length + ' songs';
   }
+
+  function renderTempo() {
+    var bar = $('tempo');
+    if (!live) { bar.hidden = true; document.body.classList.remove('has-tempo'); return; }
+    $('bpm-value').textContent = String(live.bpm);
+    var cap = $('bpm-caption');
+    if (live.isDefault) {
+      cap.textContent = 'no saved BPM';
+      cap.className = 'default';
+      cap.title = live.title + ' has no saved BPM — starting at ' + live.bpm;
+    } else {
+      cap.textContent = live.title;
+      cap.className = '';
+      cap.title = live.title + ' · ' + live.bpm + ' BPM';
+    }
+    bar.hidden = false;
+    document.body.classList.add('has-tempo');
+  }
+  function onTempoStep(delta) {
+    if (!live) return;
+    var next = nudgeTempo(live.bpm, delta);
+    var link = live.tab && !live.opened ? live.tab : null;
+    if (next === live.bpm) { setMsg(live.title + ' · tempo stays at ' + live.bpm + ' BPM', link); return; }
+    var out = usableOutput();
+    if (!out) { connect(); setMsg('Tempo NOT sent — no BeatBuddy MIDI connection.'); return; }
+    try { tempoMessages(next, CH).forEach(function (b) { out.send(b); }); }
+    catch (e) { setStatus('Send failed', 'err'); setMsg(String(e && e.message || e)); return; }
+    live.bpm = next;
+    live.isDefault = false;
+    renderTempo();
+    setMsg(live.title + ' · ' + live.bpm + ' BPM', link);
+  }
+
   function onTap(song, btn) {
-    var now = Date.now(); if (now - lastTap < 500) return; lastTap = now;
-    cancelPending();
+    var now = Date.now(); if (now - lastTap < 500) return; lastTap = now;   // ignore double taps
+    cancelPending();   // a pending tempo/start from the previous tap must never fire for the wrong song
     var out = usableOutput();
     if (!out) {
       connect();
       setMsg('Not sent — no BeatBuddy MIDI connection. ' + song.title + ' was NOT sent.', safeTab(song.tab || ''));
       return;
     }
-    var r, auto = \( ('autostart').checked, sd = Number( \)('startdelay').value) || 600;
-    var bpm = currentBpm(song);
-    var base = 'Sent: ' + song.title + ' → F' + song.folder + ' S' + song.songnum + (bpm ? ', ' + bpm + ' BPM' : '');
+    var r, auto = $('autostart').checked, sd = Number($('startdelay').value) || 600;
+    var base = 'Sent: ' + song.title + ' → F' + song.folder + ' S' + song.songnum + (song.bpm ? ', ' + song.bpm + ' BPM' : '');
     try {
-      var songToSend = Object.assign({}, song, { bpm: bpm });
-      r = tapSong(songToSend, { out: out, win: window, setTimeout: setTimeout.bind(window), clearTimeout: clearTimeout.bind(window), ch: CH, delay: DELAY,
+      r = tapSong(song, { out: out, win: window, setTimeout: setTimeout.bind(window), clearTimeout: clearTimeout.bind(window), ch: CH, delay: DELAY,
                           openTabs: $('opentabs').checked, autoStart: auto, startDelay: sd,
-                          onStart: function () { if (pending === r) { pending = null; setMsg(base + ' · ▶ Start sent'); } } });
+                          tempoNow: function () { return live && live.key === song.key ? live.bpm : null; },
+                          onStart: function () {
+                            if (pending !== r) return;
+                            pending = null;
+                            // If −/+ already moved the tempo, say that BPM. A song with no saved tempo
+                            // still has not sent one, so the start line stays as it was.
+                            var shown = (live && live.key === song.key && !live.isDefault) ? live.bpm : song.bpm;
+                            var line = 'Sent: ' + song.title + ' → F' + song.folder + ' S' + song.songnum +
+                              (shown ? ', ' + shown + ' BPM' : '') + ' · ▶ Start sent';
+                            setMsg(line, live && live.tab && !live.opened ? live.tab : null);
+                          } });
       pending = r;
+      var init = initialBpm(song);
+      live = { key: song.key, title: song.title, bpm: init.bpm, isDefault: init.isDefault, tab: r.tab, opened: r.opened };
+      renderTempo();
     } catch (e) { setStatus('Send failed', 'err'); setMsg(String(e && e.message || e)); return; }
     Array.prototype.forEach.call(document.querySelectorAll('.song.sent'), function (x) { x.classList.remove('sent'); });
     btn.classList.add('sent');
     setMsg(base + (auto ? ' · starting in ' + r.startAt + ' ms' : '') +
            (r.tab ? (r.opened ? '' : ' · tab not opened (setting off)') : ' · no tab saved'), r.tab && !r.opened ? r.tab : null);
   }
+
   $('q').addEventListener('input', render);
   $('connect').addEventListener('click', connect);
   $('stop').addEventListener('click', function () {
@@ -260,11 +400,13 @@
   $('start').addEventListener('click', function () {
     var out = usableOutput();
     try {
-      var r = startBeat({ out: out, ch: CH, cancel: cancelPending });
+      var r = startBeat({ out: out, ch: CH, cancel: cancelPending });   // cancels pending tempo/auto-start first
       if (!r.sent) { connect(); setMsg('▶ Start NOT sent — no BeatBuddy MIDI connection.'); return; }
       setMsg('▶ Start sent');
     } catch (e) { setStatus('Send failed', 'err'); setMsg(String(e && e.message || e)); }
   });
+  $('bpm-minus').addEventListener('click', function () { onTempoStep(-1); });
+  $('bpm-plus').addEventListener('click', function () { onTempoStep(1); });
   $('outputs').addEventListener('change', function () { userPicked = true; showConn(); });
   render();
   connect();
@@ -272,1995 +414,3 @@
 </script>
 </body>
 </html>
-[
-  {
-    "key": "r6",
-    "title": "All Who Are Thirsty",
-    "artist": "Kutless",
-    "folder": 1,
-    "songnum": 27,
-    "bpm": 152,
-    "bb": "All Who Are Thirsty (Blues 3)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kutless/all-who-are-thirsty-chords-321733"
-  },
-  {
-    "key": "r7",
-    "title": "Anything Is Possible",
-    "artist": "Bethel Music",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 122,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=5lzr4TEl6jC3Kzppa5tdDmDu&tab_id=32091203"
-  },
-  {
-    "key": "r8",
-    "title": "Author Perfector",
-    "artist": "Rivers & Robots",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 148,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/rivers-robots/author-perfector-chords-2574873"
-  },
-  {
-    "key": "r9",
-    "title": "Be Lifted Up",
-    "artist": "Paul Oakley",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 152,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/paul-oakley/be-lifted-up-chords-1188821"
-  },
-  {
-    "key": "r10",
-    "title": "Blessed Be Your Name",
-    "artist": "Matt Redman",
-    "folder": 1,
-    "songnum": 19,
-    "bpm": 118,
-    "bb": "Blessed Be Your Name",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/blessed-be-your-name-official-2423235"
-  },
-  {
-    "key": "r11",
-    "title": "Break Every Chain",
-    "artist": "Jesus Culture",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 136,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=3CW_TH4A1q5S-CLtM1_wZCf5&tab_id=32101475"
-  },
-  {
-    "key": "r12",
-    "title": "Champion",
-    "artist": "Maverick City Music",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 72,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=8d6LxxmIzvmq83e1xSjH1NnM&tab_id=32090738"
-  },
-  {
-    "key": "r13",
-    "title": "Eyes On You",
-    "artist": "Chase Rice",
-    "folder": 6,
-    "songnum": 6,
-    "bpm": 89,
-    "bb": "Country 6- Str 8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chase-rice/eyes-on-you-chords-2218453"
-  },
-  {
-    "key": "r14",
-    "title": "Fall Afresh",
-    "artist": "Jeremy Riddle",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jeremy-riddle/fall-afresh-chords-1170532"
-  },
-  {
-    "key": "r15",
-    "title": "Father Abraham",
-    "artist": "Misc Praise Songs",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 132,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/father-abraham-chords-3908840"
-  },
-  {
-    "key": "r16",
-    "title": "Gratitude",
-    "artist": "Brandon Lake",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 155,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-official-4007563"
-  },
-  {
-    "key": "r17",
-    "title": "Gratitude",
-    "artist": "Brandon Lake",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 155,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3313037"
-  },
-  {
-    "key": "r18",
-    "title": "Gratitude (ver 2)",
-    "artist": "Brandon Lake",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 155,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brandon-lake/gratitude-chords-3721607"
-  },
-  {
-    "key": "r19",
-    "title": "Graves Into Gardens",
-    "artist": "The Worship Initiative",
-    "folder": 1,
-    "songnum": 2,
-    "bpm": 140,
-    "bb": "Graves into Gardens",
-    "tab": "https://tabs.ultimate-guitar.com/tab/the-worship-initiative/graves-into-gardens-chords-3291140"
-  },
-  {
-    "key": "r20",
-    "title": "Great Are You Lord",
-    "artist": "All Sons & Daughters",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 144,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/all-sons-daughters/great-are-you-lord-chords-1401417"
-  },
-  {
-    "key": "r21",
-    "title": "Hallelujah Your Love Is Amazing",
-    "artist": "Brenton Brown",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 109,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-483874"
-  },
-  {
-    "key": "r22",
-    "title": "Hallelujah Your Love Is Amazing (ver 3)",
-    "artist": "Brenton Brown",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 109,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brenton-brown/hallelujah-your-love-is-amazing-chords-1675217"
-  },
-  {
-    "key": "r23",
-    "title": "Holy And Anointed One",
-    "artist": "Vineyard Music",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 140,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-music/holy-and-anointed-one-chords-277712"
-  },
-  {
-    "key": "r24",
-    "title": "Jesus Paid It All",
-    "artist": "Passion",
-    "folder": 24,
-    "songnum": 6,
-    "bpm": 76,
-    "bb": "Waltz (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-735983"
-  },
-  {
-    "key": "r25",
-    "title": "Jesus Paid It All (ver 3)",
-    "artist": "Passion",
-    "folder": 24,
-    "songnum": 6,
-    "bpm": 76,
-    "bb": "Waltz (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/passion/jesus-paid-it-all-chords-1148858"
-  },
-  {
-    "key": "r26",
-    "title": "Just As Good",
-    "artist": "Chris Renzema",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 144,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=8l32lcQdfGY5rPQK32WiVESb&tab_id=32096093"
-  },
-  {
-    "key": "r27",
-    "title": "King Jesus",
-    "artist": "Brooke Fraser (Brooke Ligertwood)",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 73,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=zanRPS4D6-kxH-Ryi7QhwGrO&tab_id=32096342"
-  },
-  {
-    "key": "r28",
-    "title": "King Of My Heart",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/king-of-my-heart-chords-1803087"
-  },
-  {
-    "key": "r29",
-    "title": "Let It Rain",
-    "artist": "Jesus Culture",
-    "folder": 1,
-    "songnum": 76,
-    "bpm": 67,
-    "bb": "Let it Rain",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jesus-culture/let-it-rain-chords-1023872"
-  },
-  {
-    "key": "r30",
-    "title": "Lion And The Lamb (ver 2)",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 79,
-    "bpm": 90,
-    "bb": "The Lion and the Lamb",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/lion-and-the-lamb-chords-1835939"
-  },
-  {
-    "key": "r31",
-    "title": "Long Live The King",
-    "artist": "Influence Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 73,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/influence-music/long-live-the-king-chords-4694462"
-  },
-  {
-    "key": "r32",
-    "title": "My King Forever",
-    "artist": "Josh Baldwin",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 144,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/josh-baldwin/my-king-forever-chords-3114482"
-  },
-  {
-    "key": "r33",
-    "title": "No Longer Slaves",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 14,
-    "bpm": 74,
-    "bb": "No Longer Slaves",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=QgYJYN3nEZNbfZsW28N8eC0k&tab_id=32090921"
-  },
-  {
-    "key": "r34",
-    "title": "Our Father",
-    "artist": "Bethel Music",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 140,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/our-father-chords-1193907"
-  },
-  {
-    "key": "r35",
-    "title": "Overcome",
-    "artist": "Desperation Band",
-    "folder": 1,
-    "songnum": 83,
-    "bpm": 76,
-    "bb": "Overcome",
-    "tab": "https://tabs.ultimate-guitar.com/tab/desperation-band/overcome-ukulele-1306542"
-  },
-  {
-    "key": "r36",
-    "title": "Power In The Blood",
-    "artist": "SDA Hymns",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 124,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/sda-hymns/power-in-the-blood-chords-1945379"
-  },
-  {
-    "key": "r37",
-    "title": "So Will I 100 Billion X",
-    "artist": "Hillsong United",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 128,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-united/so-will-i-100-billion-x-chords-2034223"
-  },
-  {
-    "key": "r38",
-    "title": "Spirit Move",
-    "artist": "Bethel Music",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 80,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=7yM6cQKo9pgBFWsoYnonstUP&tab_id=32091281"
-  },
-  {
-    "key": "r39",
-    "title": "Standing On The Promises",
-    "artist": "Misc Praise Songs",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 184,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=Clx3qM4gCyIuXK6yKL4F20Sy&tab_id=32095985"
-  },
-  {
-    "key": "r40",
-    "title": "Thank You Jesus For The Blood",
-    "artist": "Charity Gayle",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 122,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=5-RvHfRNKw14hLMmia6RSgVF&tab_id=32096225"
-  },
-  {
-    "key": "r41",
-    "title": "Thats The Power",
-    "artist": "Hillsong Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=avv5ZL7wN-f27cwxZMoz84Vz&tab_id=32096720"
-  },
-  {
-    "key": "r42",
-    "title": "Unto The Lamb",
-    "artist": "UPPERROOM",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 137,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/upperroom/unto-the-lamb-chords-3036621"
-  },
-  {
-    "key": "r43",
-    "title": "Way Maker (ver 3)",
-    "artist": "Sinach",
-    "folder": 1,
-    "songnum": 35,
-    "bpm": 66,
-    "bb": "Way maker",
-    "tab": "https://tabs.ultimate-guitar.com/tab/sinach/way-maker-chords-2405347"
-  },
-  {
-    "key": "r44",
-    "title": "Worthy Of It All",
-    "artist": "David Brymer",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 76,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/david-brymer/worthy-of-it-all-chords-1156060"
-  },
-  {
-    "key": "r45",
-    "title": "You Never Let Go (ver 2)",
-    "artist": "Matt Redman",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 76,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/you-never-let-go-chords-393920"
-  },
-  {
-    "key": "r46",
-    "title": "All Hail King Jesus",
-    "artist": "Jeremy Riddle",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jeremy-riddle/all-hail-king-jesus-chords-2188223"
-  },
-  {
-    "key": "r47",
-    "title": "Always",
-    "artist": "Chris Tomlin",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 158,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/always-chords-4130875"
-  },
-  {
-    "key": "r48",
-    "title": "Come To The River",
-    "artist": "Housefires",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 135,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/housefires/come-to-the-river-chords-1665955"
-  },
-  {
-    "key": "r49",
-    "title": "Communion",
-    "artist": "Steffany Gretzinger",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 91,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/steffany-gretzinger/communion-chords-2885060"
-  },
-  {
-    "key": "r50",
-    "title": "Forever Reign",
-    "artist": "Hillsong Worship",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 83,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/forever-reign-chords-968753"
-  },
-  {
-    "key": "r51",
-    "title": "Give Me Oil In My Lamp",
-    "artist": "Misc Traditional",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 123,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-traditional/give-me-oil-in-my-lamp-chords-3006665"
-  },
-  {
-    "key": "r52",
-    "title": "Happy Day",
-    "artist": "Tim Hughes",
-    "folder": 1,
-    "songnum": 53,
-    "bpm": 140,
-    "bb": "Happy Day",
-    "tab": "https://tabs.ultimate-guitar.com/tab/tim-hughes/happy-day-chords-409104"
-  },
-  {
-    "key": "r53",
-    "title": "Here For You",
-    "artist": "Matt Redman",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 170,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/here-for-you-chords-1106276"
-  },
-  {
-    "key": "r54",
-    "title": "House Of Miracles",
-    "artist": "Brandon Lake",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 71,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brandon-lake/house-of-miracles-chords-3312011"
-  },
-  {
-    "key": "r55",
-    "title": "How Great Thou Art",
-    "artist": "Misc Praise Songs",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 140,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/how-great-thou-art-chords-877980"
-  },
-  {
-    "key": "r56",
-    "title": "I Know A Name",
-    "artist": "Elevation Worship",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 86,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/elevation-worship/i-know-a-name-chords-5611626"
-  },
-  {
-    "key": "r57",
-    "title": "I Speak Jesus",
-    "artist": "Here Be Lions",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/here-be-lions/i-speak-jesus-chords-2854832"
-  },
-  {
-    "key": "r58",
-    "title": "I Thank God",
-    "artist": "Maverick City Music",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 130,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=PlWVjrP5AfaPrP6xAvgsyzmK&tab_id=32096774"
-  },
-  {
-    "key": "r59",
-    "title": "Majesty",
-    "artist": "Delirious?",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 142,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/delirious/majesty-chords-399768"
-  },
-  {
-    "key": "r60",
-    "title": "Psalm 100",
-    "artist": "Chris Tomlin",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 123,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/psalm-100-chords-1675631"
-  },
-  {
-    "key": "r61",
-    "title": "Raise A Hallelujah (ver 3)",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 30,
-    "bpm": 82,
-    "bb": "Raise A Hallelujah",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=F719-KQCdqGAijSlp4j5fhhD&tab_id=32096594"
-  },
-  {
-    "key": "r62",
-    "title": "Same God",
-    "artist": "Elevation Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 72,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=CmbrKweZG0MkQHlmI_V3SFbc&tab_id=32096516"
-  },
-  {
-    "key": "r63",
-    "title": "Sing Sing Sing",
-    "artist": "Chris Tomlin",
-    "folder": 1,
-    "songnum": 56,
-    "bpm": 145,
-    "bb": "Sing Sing Sing Toms",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/sing-sing-sing-chords-746522"
-  },
-  {
-    "key": "r64",
-    "title": "The Heart Of Worship",
-    "artist": "Matt Redman",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=lIERiBrov-mQyOMRPRolVJvk&tab_id=1998811"
-  },
-  {
-    "key": "r65",
-    "title": "This Is Our God",
-    "artist": "Phil Wickham",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 80,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/phil-wickham/this-is-our-god-chords-4577840"
-  },
-  {
-    "key": "r66",
-    "title": "Who Is This Man",
-    "artist": "Cody Carnes",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 91,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=m1fsuAylQnClK0wF4WyPwzFa&tab_id=32096795"
-  },
-  {
-    "key": "r67",
-    "title": "Yahweh",
-    "artist": "Rend Collective",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/rend-collective/yahweh-chords-2293999"
-  },
-  {
-    "key": "r68",
-    "title": "You And You Alone",
-    "artist": "UPPERROOM",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 138,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/upperroom/you-and-you-alone-chords-2466884"
-  },
-  {
-    "key": "r69",
-    "title": "Ah Lord God",
-    "artist": "Don Moen",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 126,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/don-moen/ah-lord-god-chords-1967785"
-  },
-  {
-    "key": "r70",
-    "title": "Ancient Gates",
-    "artist": "Brooke Fraser (Brooke Ligertwood)",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 95,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brooke-fraser-brooke-ligertwood/ancient-gates-chords-4098676"
-  },
-  {
-    "key": "r71",
-    "title": "Come Now Is The Time To Worship",
-    "artist": "Brian Doerksen",
-    "folder": 1,
-    "songnum": 13,
-    "bpm": 96,
-    "bb": "Come Now is the Time to Worship",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brian-doerksen/come-now-is-the-time-to-worship-chords-118607"
-  },
-  {
-    "key": "r72",
-    "title": "Ever Be (ver 2)",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 85,
-    "bpm": 69,
-    "bb": "Ever Be TCC",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/ever-be-chords-1973315"
-  },
-  {
-    "key": "r73",
-    "title": "Glorious Day",
-    "artist": "Passion",
-    "folder": 1,
-    "songnum": 9,
-    "bpm": 110,
-    "bb": "Glorious Day",
-    "tab": "https://tabs.ultimate-guitar.com/tab/passion/glorious-day-chords-1928417"
-  },
-  {
-    "key": "r74",
-    "title": "Great I Am",
-    "artist": "Phillips, Craig & Dean",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 160,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/phillips-craig-dean/great-i-am-chords-1243304"
-  },
-  {
-    "key": "r75",
-    "title": "Here As In Heaven",
-    "artist": "Gardiner Sisters",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 139,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/gardiner-sisters/here-as-in-heaven-chords-2248815"
-  },
-  {
-    "key": "r76",
-    "title": "Holy Ground",
-    "artist": "Passion",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 72,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=wklrY2F6YD6EsfTmFK0QsTZG&tab_id=32096810"
-  },
-  {
-    "key": "r77",
-    "title": "Holy Spirit",
-    "artist": "Jesus Culture",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 144,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jesus-culture/holy-spirit-chords-1196074"
-  },
-  {
-    "key": "r78",
-    "title": "I Can See Clearly Now",
-    "artist": "Johnny Nash",
-    "folder": 21,
-    "songnum": 1,
-    "bpm": 122,
-    "bb": "Reggae 1- backbeat (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/johnny-nash/i-can-see-clearly-now-chords-77897"
-  },
-  {
-    "key": "r79",
-    "title": "I Love Your Presence",
-    "artist": "Bethel Music",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 83,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/i-love-your-presence-chords-1086541"
-  },
-  {
-    "key": "r80",
-    "title": "I Love Your Presence",
-    "artist": "Vineyard Music",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 158,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-music/i-love-your-presence-chords-1034085"
-  },
-  {
-    "key": "r81",
-    "title": "I Will Wait For You",
-    "artist": "Misc Praise Songs",
-    "folder": 5,
-    "songnum": 5,
-    "bpm": 114,
-    "bb": "Brushes 5- 3/4 Half time Shuffle Pop (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/i-will-wait-for-you-chords-2895245"
-  },
-  {
-    "key": "r82",
-    "title": "In The Garden",
-    "artist": "Alan Jackson",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 87,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=b670zOsJpWh2CFth0LeMy4gT&tab_id=32091335"
-  },
-  {
-    "key": "r83",
-    "title": "In Your Hands",
-    "artist": "Hillsong Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/in-your-hands-chords-405784"
-  },
-  {
-    "key": "r84",
-    "title": "Jireh",
-    "artist": "Elevation Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=1hBUFOl1c7cGQh5ct8VABIyr&tab_id=32096840"
-  },
-  {
-    "key": "r85",
-    "title": "Kalley Heiligenthal - Your Praise Will Ever Be On My Lips",
-    "artist": "Bethel Music",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 154,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/kalley-heiligenthal-your-praise-will-ever-be-on-my-lips-chords-1470384"
-  },
-  {
-    "key": "r86",
-    "title": "King Of Kings",
-    "artist": "Hillsong Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/king-of-kings-chords-2761663"
-  },
-  {
-    "key": "r87",
-    "title": "King Of Kings",
-    "artist": "Hillsong Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/king-of-kings-official-3041742"
-  },
-  {
-    "key": "r88",
-    "title": "Known By You",
-    "artist": "Gateway Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 67,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/gateway-worship/known-by-you-chords-5610186"
-  },
-  {
-    "key": "r89",
-    "title": "Most Beautiful - So In Love",
-    "artist": "Maverick City Music",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 132,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/maverick-city-music/most-beautiful-so-in-love-chords-2848532"
-  },
-  {
-    "key": "r90",
-    "title": "New Wine",
-    "artist": "Hillsong Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/new-wine-chords-2251409"
-  },
-  {
-    "key": "r91",
-    "title": "Once Again",
-    "artist": "Matt Redman",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 160,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/once-again-chords-2163585"
-  },
-  {
-    "key": "r92",
-    "title": "Revelation Song",
-    "artist": "Kari Jobe",
-    "folder": 1,
-    "songnum": 3,
-    "bpm": 63,
-    "bb": "Revelation Song EWB",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kari-jobe/revelation-song-chords-976879"
-  },
-  {
-    "key": "r93",
-    "title": "Starlight",
-    "artist": "Amanda Cook",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 150,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/amanda-cook/starlight-chords-1754513"
-  },
-  {
-    "key": "r94",
-    "title": "The Heart Of Worship",
-    "artist": "Matt Redman",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=zD9h6XUO8WNW1_KhP7CcAmO0&tab_id=32096432"
-  },
-  {
-    "key": "r95",
-    "title": "This Is The Day",
-    "artist": "Misc Praise Songs",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 122,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/this-is-the-day-chords-967599"
-  },
-  {
-    "key": "r96",
-    "title": "We Make Space",
-    "artist": "Jonathan David & Melissa Helser",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 58,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jonathan-david-melissa-helser/we-make-space-chords-4064653"
-  },
-  {
-    "key": "r97",
-    "title": "What A Beautiful Name (ver 4)",
-    "artist": "Hillsong Worship",
-    "folder": 1,
-    "songnum": 22,
-    "bpm": 136,
-    "bb": "What a Beautiful Name",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/what-a-beautiful-name-chords-1877979"
-  },
-  {
-    "key": "r98",
-    "title": "What A Mighty God We Serve",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 95,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/what-a-mighty-god-we-serve-chords-1484994"
-  },
-  {
-    "key": "r99",
-    "title": "Worthy",
-    "artist": "Elevation Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 67,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=EUUEJGmK5O2Wi-an_IppAabp&tab_id=32096864"
-  },
-  {
-    "key": "r100",
-    "title": "You Are My King Amazing Love",
-    "artist": "Passion",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 140,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/passion/you-are-my-king-amazing-love-chords-524860"
-  },
-  {
-    "key": "r101",
-    "title": "You Deserve It All",
-    "artist": "Bethel Music",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 138,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/you-deserve-it-all-chords-2119605"
-  },
-  {
-    "key": "r102",
-    "title": "Yeshua",
-    "artist": "Jesus Image",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 137,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=nMRqo0v_Rha0SNMeBkwmR_D0&tab_id=32097218"
-  },
-  {
-    "key": "r104",
-    "title": "Alive",
-    "artist": "Hillsong Worship",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 132,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/alive-chords-1675628"
-  },
-  {
-    "key": "r105",
-    "title": "Alive Forever Amen",
-    "artist": "Travis Cottrell",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 76,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/travis-cottrell/alive-forever-amen-chords-1754347"
-  },
-  {
-    "key": "r106",
-    "title": "At The Cross",
-    "artist": "Misc Praise Songs",
-    "folder": 1,
-    "songnum": 39,
-    "bpm": 70,
-    "bb": "At the Cross (LRR) TCC",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/at-the-cross-chords-1483591"
-  },
-  {
-    "key": "r107",
-    "title": "Be The Center",
-    "artist": "Vineyard Music",
-    "folder": 1,
-    "songnum": 31,
-    "bpm": 75,
-    "bb": "Be The Center_Blues1",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-music/be-the-center-chords-1210213"
-  },
-  {
-    "key": "r108",
-    "title": "Better Is One Day",
-    "artist": "Matt Redman",
-    "folder": 1,
-    "songnum": 5,
-    "bpm": 77,
-    "bb": "Better is one day in your courts",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/better-is-one-day-chords-140415"
-  },
-  {
-    "key": "r109",
-    "title": "Closer",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/closer-chords-1196115"
-  },
-  {
-    "key": "r110",
-    "title": "Closer (ver 2)",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/closer-chords-1748801"
-  },
-  {
-    "key": "r111",
-    "title": "Fear Is Not My Future",
-    "artist": "Brandon Lake",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 138,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/brandon-lake/fear-is-not-my-future-chords-4192993"
-  },
-  {
-    "key": "r112",
-    "title": "Freedom Reigns",
-    "artist": "Jesus Culture",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 71,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jesus-culture/freedom-reigns-chords-1012530"
-  },
-  {
-    "key": "r113",
-    "title": "Is He Worthy",
-    "artist": "Chris Tomlin",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 73,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/is-he-worthy-chords-2480554"
-  },
-  {
-    "key": "r114",
-    "title": "Joy In The Morning",
-    "artist": "Tauren Wells",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 67,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/tauren-wells/joy-in-the-morning-chords-4226893"
-  },
-  {
-    "key": "r115",
-    "title": "Let Everything That Has Breath",
-    "artist": "Matt Redman",
-    "folder": 1,
-    "songnum": 75,
-    "bpm": 115,
-    "bb": "Let everything that",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/let-everything-that-has-breath-chords-140422"
-  },
-  {
-    "key": "r116",
-    "title": "Let The River Flow",
-    "artist": "Vineyard Music",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 169,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-music/let-the-river-flow-chords-277186"
-  },
-  {
-    "key": "r117",
-    "title": "Let The River Flow",
-    "artist": "Darrell Evans",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 89,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/darrell-evans/let-the-river-flow-chords-2124459"
-  },
-  {
-    "key": "r118",
-    "title": "Nothing But The Blood Of Jesus",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 94,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/nothing-but-the-blood-of-jesus-chords-877984"
-  },
-  {
-    "key": "r119",
-    "title": "Open The Eyes Of My Heart",
-    "artist": "Michael W. Smith",
-    "folder": 1,
-    "songnum": 20,
-    "bpm": 107,
-    "bb": "Open The Eyes of My Heart",
-    "tab": "https://tabs.ultimate-guitar.com/tab/michael-w-smith/open-the-eyes-of-my-heart-chords-852420"
-  },
-  {
-    "key": "r120",
-    "title": "This Is My Desire Lord I Give You My Heart",
-    "artist": "Oslo Gospel Choir",
-    "folder": 1,
-    "songnum": 12,
-    "bpm": 74,
-    "bb": "I Give You My Heart (This is My Desire)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/oslo-gospel-choir/this-is-my-desire-lord-i-give-you-my-heart-chords-1928827"
-  },
-  {
-    "key": "r121",
-    "title": "Way Maker",
-    "artist": "Leeland",
-    "folder": 1,
-    "songnum": 35,
-    "bpm": 68,
-    "bb": "Way maker",
-    "tab": "https://tabs.ultimate-guitar.com/tab/leeland/way-maker-chords-2806757"
-  },
-  {
-    "key": "r122",
-    "title": "Yahweh",
-    "artist": "Andy Park",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 107,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/andy-park/yahweh-chords-1764643"
-  },
-  {
-    "key": "r123",
-    "title": "After You",
-    "artist": "UPPERROOM",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 142,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=1LXi0XYviGe8z8HZH5vF4Dq4&tab_id=32096927"
-  },
-  {
-    "key": "r124",
-    "title": "As The Deer (ver 3)",
-    "artist": "Misc Praise Songs",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/as-the-deer-chords-1067236"
-  },
-  {
-    "key": "r125",
-    "title": "Did You Feel The Mountains Tremble",
-    "artist": "Matt Redman",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/did-you-feel-the-mountains-tremble-chords-549729"
-  },
-  {
-    "key": "r126",
-    "title": "Forever Yhwh",
-    "artist": "Elevation Worship",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 142,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=VpafSdDAVTtJv35ElsJVSXQT&tab_id=32096984"
-  },
-  {
-    "key": "r127",
-    "title": "Graves Into Gardens",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 2,
-    "bpm": 126,
-    "bb": "Graves into Gardens",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/graves-into-gardens-chords-4043458"
-  },
-  {
-    "key": "r128",
-    "title": "I See Heaven (ver 3)",
-    "artist": "Bryan & Katie Torwalt",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 122,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bryan-katie-torwalt/i-see-heaven-chords-1740253"
-  },
-  {
-    "key": "r129",
-    "title": "King Of Glory",
-    "artist": "Misty Edwards",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misty-edwards/king-of-glory-chords-1044067"
-  },
-  {
-    "key": "r130",
-    "title": "Light Of Your Face",
-    "artist": "Jesus Culture",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jesus-culture/light-of-your-face-chords-1063152"
-  },
-  {
-    "key": "r131",
-    "title": "My Jesus",
-    "artist": "Anne Wilson",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 76,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=63Dgwge-zvYEo4I_auGzgLKQ&tab_id=32096681"
-  },
-  {
-    "key": "r132",
-    "title": "Oh Lord Youre Beautiful",
-    "artist": "Bethel Music",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/oh-lord-youre-beautiful-chords-1953331"
-  },
-  {
-    "key": "r133",
-    "title": "Surrounded Fight My Battles (ver 2)",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 33,
-    "bpm": 130,
-    "bb": "Surrounded (Fight My Battles)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/surrounded-fight-my-battles-chords-2463792"
-  },
-  {
-    "key": "r134",
-    "title": "To Him Who Sits On The Throne",
-    "artist": "Misc Praise Songs",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/to-him-who-sits-on-the-throne-chords-751010"
-  },
-  {
-    "key": "r135",
-    "title": "To The One",
-    "artist": "UPPERROOM",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": 80,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=k9xHQFFEIXLv_sjzlNLUt_A7&tab_id=32098652"
-  },
-  {
-    "key": "r136",
-    "title": "You Are My Hiding Place",
-    "artist": "Selah",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 110,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/selah/you-are-my-hiding-place-chords-1014044"
-  },
-  {
-    "key": "r137",
-    "title": "Youre Beautiful (ver 3)",
-    "artist": "Phil Wickham",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 83,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/phil-wickham/youre-beautiful-chords-831625"
-  },
-  {
-    "key": "r138",
-    "title": "A Storm All Around You",
-    "artist": "Jon Thurlow",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jon-thurlow/a-storm-all-around-you-chords-1133429"
-  },
-  {
-    "key": "r139",
-    "title": "All Who Are Thirsty",
-    "artist": "Vineyard Worship",
-    "folder": 1,
-    "songnum": 27,
-    "bpm": 150,
-    "bb": "All Who Are Thirsty (Blues 3)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-worship/all-who-are-thirsty-chords-642368"
-  },
-  {
-    "key": "r140",
-    "title": "Amazing Grace",
-    "artist": "Misc Praise Songs",
-    "folder": 1,
-    "songnum": 1,
-    "bpm": 50,
-    "bb": "Amazing Grace (custom 3-4)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/amazing-grace-chords-66733"
-  },
-  {
-    "key": "r141",
-    "title": "Amazing Grace My Chains Are Gone",
-    "artist": "Matt Redman",
-    "folder": 1,
-    "songnum": 25,
-    "bpm": 63,
-    "bb": "Amazing Grace (My Chains are Gone)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/matt-redman/amazing-grace-my-chains-are-gone-chords-1499313"
-  },
-  {
-    "key": "r142",
-    "title": "Are You Washed In The Blood",
-    "artist": "Misc Praise Songs",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 111,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/are-you-washed-in-the-blood-chords-1133064"
-  },
-  {
-    "key": "r143",
-    "title": "Build My Life",
-    "artist": "Housefires",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 140,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/housefires/build-my-life-official-2827247"
-  },
-  {
-    "key": "r144",
-    "title": "Draw Me Close (ver 2)",
-    "artist": "Vineyard Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=BCCiGZDJChws-dLxQw9zkmNG&tab_id=32096138"
-  },
-  {
-    "key": "r145",
-    "title": "Even So Come",
-    "artist": "Chris Tomlin",
-    "folder": 5,
-    "songnum": 5,
-    "bpm": 162,
-    "bb": "Brushes 5- 3/4 Half time Shuffle Pop (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/even-so-come-chords-1698142"
-  },
-  {
-    "key": "r146",
-    "title": "Forever",
-    "artist": "Kari Jobe",
-    "folder": 1,
-    "songnum": 47,
-    "bpm": 72,
-    "bb": "Forever",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=kuY687SfO_8qRkyCPfSiiOLl&tab_id=32090843"
-  },
-  {
-    "key": "r147",
-    "title": "Give Me Jesus",
-    "artist": "UPPERROOM",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 70,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/upperroom/give-me-jesus-chords-3840338"
-  },
-  {
-    "key": "r148",
-    "title": "God Of Wonders",
-    "artist": "Chris Tomlin",
-    "folder": 1,
-    "songnum": 11,
-    "bpm": 81,
-    "bb": "God of Wonders",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/god-of-wonders-chords-679989"
-  },
-  {
-    "key": "r149",
-    "title": "Goodness Of God",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 63,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/goodness-of-god-official-3010214"
-  },
-  {
-    "key": "r150",
-    "title": "Goodness Of God",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 63,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=w_ln7O4fMBC4oTPmfxfDvT6j&tab_id=32096180"
-  },
-  {
-    "key": "r151",
-    "title": "Have Yourself A Merry Little Christmas",
-    "artist": "Misc Christmas",
-    "folder": 5,
-    "songnum": 3,
-    "bpm": 144,
-    "bb": "Brushes 3- Half time shuffle (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-christmas/have-yourself-a-merry-little-christmas-chords-1007691"
-  },
-  {
-    "key": "r152",
-    "title": "How Great Is Our God (ver 7)",
-    "artist": "Chris Tomlin",
-    "folder": 1,
-    "songnum": 17,
-    "bpm": 76,
-    "bb": "How Great is Our God",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/how-great-is-our-god-chords-1469892"
-  },
-  {
-    "key": "r153",
-    "title": "I Give You My Heart",
-    "artist": "Hillsong Worship",
-    "folder": 1,
-    "songnum": 28,
-    "bpm": 70,
-    "bb": "I Give You My Heart",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/i-give-you-my-heart-chords-186981"
-  },
-  {
-    "key": "r154",
-    "title": "It Is Well",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 65,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/it-is-well-chords-1478340"
-  },
-  {
-    "key": "r155",
-    "title": "My Weapon",
-    "artist": "Natalie Grant",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 82,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=934uE1M1KomWLBB6-3JqDDM2&tab_id=32097302"
-  },
-  {
-    "key": "r156",
-    "title": "No Sweeter Name",
-    "artist": "Kari Jobe",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 120,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kari-jobe/no-sweeter-name-chords-954093"
-  },
-  {
-    "key": "r157",
-    "title": "Oh The Cross",
-    "artist": "UPPERROOM",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 152,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/upperroom/oh-the-cross-chords-2998181"
-  },
-  {
-    "key": "r158",
-    "title": "Old For New",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 72,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/old-for-new-chords-1905950"
-  },
-  {
-    "key": "r159",
-    "title": "The Blood",
-    "artist": "Bethel Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/the-blood-chords-4381229"
-  },
-  {
-    "key": "r160",
-    "title": "The Old Rugged Cross",
-    "artist": "Alan Jackson",
-    "folder": 6,
-    "songnum": 5,
-    "bpm": 79,
-    "bb": "Country 5- Brushes Train (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/alan-jackson/the-old-rugged-cross-chords-1741853"
-  },
-  {
-    "key": "r161",
-    "title": "The Power Of Your Love",
-    "artist": "Hillsong Worship",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 81,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/the-power-of-your-love-chords-186983"
-  },
-  {
-    "key": "r162",
-    "title": "Trees Of The Field",
-    "artist": "Misc Praise Songs",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 180,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/trees-of-the-field-chords-957716"
-  },
-  {
-    "key": "r163",
-    "title": "Who You Say I Am",
-    "artist": "Hillsong Worship",
-    "folder": 1,
-    "songnum": 29,
-    "bpm": 58,
-    "bb": "Who You Say I Am (Blues 4- 6/8)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/who-you-say-i-am-chords-2240451"
-  },
-  {
-    "key": "r164",
-    "title": "You Are So Good To Me",
-    "artist": "Third Day",
-    "folder": 6,
-    "songnum": 6,
-    "bpm": 79,
-    "bb": "Country 6- Str 8 (standard)",
-    "tab": "https://www.praisecharts.com/songs/details/7340/you-are-so-good-to-me-sheet-music"
-  },
-  {
-    "key": "r165",
-    "title": "You Keep On Getting Better",
-    "artist": "Maverick City Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 76,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/maverick-city-music/you-keep-on-getting-better-chords-2861609"
-  },
-  {
-    "key": "r166",
-    "title": "Reckless Love",
-    "artist": "Cory Asbury",
-    "folder": 15,
-    "songnum": 3,
-    "bpm": 111,
-    "bb": "Odd Time 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=5D-1g1VxcgpWbp0d_9nqEomQ&tab_id=32097104"
-  },
-  {
-    "key": "r167",
-    "title": "Tremble",
-    "artist": "UPPERROOM",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 147,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=3UghQewvpMV-HIOy-_ELDFWQ&tab_id=32097380"
-  },
-  {
-    "key": "r168",
-    "title": "A Mighty Fortress Is Our God",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=A%20Mighty%20Fortress%20Is%20Our%20God"
-  },
-  {
-    "key": "r169",
-    "title": "All to Jesus I Surrender",
-    "artist": "Kari Jobe",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=All%20to%20Jesus%20I%20Surrender"
-  },
-  {
-    "key": "r170",
-    "title": "Bethel Music - No Longer Slaves - Break Every Chain",
-    "artist": "Misc Mashups",
-    "folder": 1,
-    "songnum": 14,
-    "bpm": null,
-    "bb": "No Longer Slaves",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-mashups/bethel-music-no-longer-slaves-break-every-chain-chords-2770447"
-  },
-  {
-    "key": "r171",
-    "title": "Come Thou Fount",
-    "artist": "David Crowder Band",
-    "folder": 24,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Waltz (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=Come%20Thou%20Fount"
-  },
-  {
-    "key": "r172",
-    "title": "Crown Him with Many Crowns",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=Crown%20Him%20with%20Many%20Crowns"
-  },
-  {
-    "key": "r173",
-    "title": "Elevation Worship - Trust In God - Cody Carnes - Firm Foundation He Wont",
-    "artist": "Misc Mashups",
-    "folder": 3,
-    "songnum": 3,
-    "bpm": null,
-    "bb": "Blues 3- 6/8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-mashups/elevation-worship-trust-in-god-cody-carnes-firm-foundation-he-wont-chords-4969885"
-  },
-  {
-    "key": "r174",
-    "title": "Every Nation Every Soul",
-    "artist": "Lindy Conant",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 66,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/lindy-conant/every-nation-every-soul-chords-1835377"
-  },
-  {
-    "key": "r175",
-    "title": "For Your Name",
-    "artist": "Hillsong Worship",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 136,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/hillsong-worship/for-your-name-chords-1016439"
-  },
-  {
-    "key": "r176",
-    "title": "Glory To His Name",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/glory-to-his-name-chords-1699591"
-  },
-  {
-    "key": "r177",
-    "title": "Grace Like Rain",
-    "artist": "Chris Tomlin",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 100,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/chris-tomlin/grace-like-rain-chords-402006"
-  },
-  {
-    "key": "r178",
-    "title": "Healing Word",
-    "artist": "Holland Davis",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 115,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/holland-davis/healing-word-chords-3662159"
-  },
-  {
-    "key": "r179",
-    "title": "Hymns Mashup - How Great Thou Art - It Is Well - Great Is Thy Faithfulness",
-    "artist": "Anthem Lights",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/anthem-lights/hymns-mashup-how-great-thou-art-it-is-well-great-is-thy-faithfulness-chords-1766034"
-  },
-  {
-    "key": "r181",
-    "title": "I Keep Falling In Love With Him",
-    "artist": "The Lanny Wolfe Trio",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 95,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/the-lanny-wolfe-trio/i-keep-falling-in-love-with-him-chords-2325597"
-  },
-  {
-    "key": "r182",
-    "title": "I Stand In Awe",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/i-stand-in-awe-chords-196901"
-  },
-  {
-    "key": "r183",
-    "title": "Ill Fly Away",
-    "artist": "Misc Praise Songs",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 52,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/ill-fly-away-chords-3837845"
-  },
-  {
-    "key": "r184",
-    "title": "Ill Stand",
-    "artist": "Michael W. Smith",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/michael-w-smith/ill-stand-chords-967118"
-  },
-  {
-    "key": "r185",
-    "title": "In Him We Live",
-    "artist": "Kent Henry",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 136,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kent-henry/in-him-we-live-chords-2540271"
-  },
-  {
-    "key": "r186",
-    "title": "In The Secret",
-    "artist": "Andy Park",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 120,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/andy-park/in-the-secret-chords-1013914"
-  },
-  {
-    "key": "r187",
-    "title": "Jesus Youre Beautiful",
-    "artist": "Jon Thurlow",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 126,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jon-thurlow/jesus-youre-beautiful-chords-1246967"
-  },
-  {
-    "key": "r188",
-    "title": "John B Vaughan - We Shall See The King",
-    "artist": "Misc Praise Songs",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 74,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/misc-praise-songs/john-b-vaughan-we-shall-see-the-king-chords-2265103"
-  },
-  {
-    "key": "r189",
-    "title": "Joyful, Joyful, We Adore Thee",
-    "artist": "Misc Praise Songs",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=Joyful%2C%20Joyful%2C%20We%20Adore%20Thee"
-  },
-  {
-    "key": "r190",
-    "title": "Let Your Glory Fall",
-    "artist": "Vineyard Music",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 68,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-music/let-your-glory-fall-chords-399548"
-  },
-  {
-    "key": "r191",
-    "title": "Oh Happy Day",
-    "artist": "Elvis Presley",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 100,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/elvis-presley/oh-happy-day-chords-840386"
-  },
-  {
-    "key": "r192",
-    "title": "Refiners Fire",
-    "artist": "Vineyard Worship",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 75,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/vineyard-worship/refiners-fire-chords-277187"
-  },
-  {
-    "key": "r193",
-    "title": "Restoration",
-    "artist": "David Brymer",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/david-brymer/restoration-chords-1081256"
-  },
-  {
-    "key": "r194",
-    "title": "The More I Seek You",
-    "artist": "Kari Jobe",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 65,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kari-jobe/the-more-i-seek-you-chords-813450"
-  },
-  {
-    "key": "r195",
-    "title": "There Is Power in the Blood",
-    "artist": "Don Gibson",
-    "folder": 6,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Country 6- Str 8 (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=There%20Is%20Power%20in%20the%20Blood"
-  },
-  {
-    "key": "r196",
-    "title": "Theres No Other Name",
-    "artist": "Bethel Music",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": null,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/theres-no-other-name-chords-1732530"
-  },
-  {
-    "key": "r197",
-    "title": "Theres Something About That Name",
-    "artist": "Bill & Gloria Gaither",
-    "folder": 24,
-    "songnum": 6,
-    "bpm": 66,
-    "bb": "Waltz (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bill-gloria-gaither/theres-something-about-that-name-chords-1446168"
-  },
-  {
-    "key": "r198",
-    "title": "To God Be the Glory",
-    "artist": "Misc Praise Songs",
-    "folder": 24,
-    "songnum": 6,
-    "bpm": 100,
-    "bb": "Waltz (standard)",
-    "tab": "https://www.ultimate-guitar.com/search.php?search_type=title&value=To%20God%20Be%20the%20Glory"
-  },
-  {
-    "key": "r199",
-    "title": "Victors Crown",
-    "artist": "Darlene Zschech",
-    "folder": 20,
-    "songnum": 1,
-    "bpm": 150,
-    "bb": "Rock 1 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/darlene-zschech/victors-crown-chords-1219790"
-  },
-  {
-    "key": "r200",
-    "title": "We Bring Praises",
-    "artist": "Daniel Vaughn",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 79,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/user/tab/view?h=eEVkWrcXZ94jlDbdhDY-K-M_&tab_id=5677418"
-  },
-  {
-    "key": "r202",
-    "title": "We Cry Holy",
-    "artist": "Kutless",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 80,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/kutless/we-cry-holy-chords-1159245"
-  },
-  {
-    "key": "r203",
-    "title": "We Love Your Name",
-    "artist": "Jaye Thomas",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 71,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/jaye-thomas/we-love-your-name-chords-1697514"
-  },
-  {
-    "key": "r204",
-    "title": "What A Beautiful Name",
-    "artist": "Bethel Music",
-    "folder": 1,
-    "songnum": 22,
-    "bpm": 68,
-    "bb": "What a Beautiful Name",
-    "tab": "https://tabs.ultimate-guitar.com/tab/bethel-music/what-a-beautiful-name-chords-1942419"
-  },
-  {
-    "key": "r205",
-    "title": "Your Goodness",
-    "artist": "The Bridge Band",
-    "folder": 2,
-    "songnum": 1,
-    "bpm": 63,
-    "bb": "Ballad 2 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/the-bridge-band/your-goodness-chords-2781403"
-  },
-  {
-    "key": "r206",
-    "title": "Your Love Is Extravagant",
-    "artist": "Casting Crowns",
-    "folder": 17,
-    "songnum": 6,
-    "bpm": 80,
-    "bb": "Pop 6- 8ths (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/casting-crowns/your-love-is-extravagant-chords-196135"
-  },
-  {
-    "key": "x1",
-    "title": "Praise",
-    "artist": "Elevation Worship",
-    "folder": 26,
-    "songnum": 4,
-    "bpm": 127,
-    "bb": "Pop-Rock Str8 (standard)",
-    "tab": "https://tabs.ultimate-guitar.com/tab/elevation-worship/praise-chords-4780226"
-  }
-]
